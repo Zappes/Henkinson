@@ -8,7 +8,9 @@ Type=simple
 Restart=always
 RestartSec=1
 User=root
-ExecStart=/usr/bin/java -jar /home/pi/henkinson/henkinson-full.jar
+ExecStart=/usr/bin/java -XX:ErrorFile=/home/pi/henkinson/jvm_crash.log -jar /home/pi/henkinson/henkinson-full.jar
+ExecStop=touch /home/pi/henkinson/killfile
+KillMode=none
 
 [Install]
 WantedBy=multi-user.target
