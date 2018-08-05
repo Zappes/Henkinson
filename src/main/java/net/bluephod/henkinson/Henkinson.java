@@ -6,9 +6,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import com.diozero.ws281xj.LedDriverInterface;
-import com.diozero.ws281xj.PixelAnimations;
-import com.diozero.ws281xj.PixelColour;
 import com.diozero.ws281xj.rpiws281x.WS281x;
+import net.bluephod.henkinson.jenkins.DummyJenkins;
+import net.bluephod.henkinson.jenkins.Jenkins;
+import net.bluephod.henkinson.ledstrip.StripController;
 import org.pmw.tinylog.Logger;
 
 public class Henkinson {
@@ -27,14 +28,18 @@ public class Henkinson {
 		Logger.info(String.format("Using GPIO %d", gpioNum));
 
 		try(LedDriverInterface ledDriver = new WS281x(gpioNum, brightness, numPixels)) {
+			Jenkins jenkins = new DummyJenkins();
+			StripController controller = new StripController(ledDriver);
+
 			while(true) {
-				PixelAnimations.colourWipe(ledDriver, PixelColour.createColourRGB(255, 0, 0), 25); // Red
-				PixelAnimations.colourWipe(ledDriver, PixelColour.createColourRGB(0, 0, 255), 25); // Blue
+				controller.showStatus(jenkins.retrieveStatus());
 
 				if(serviceShouldStop()) {
 					Logger.info(String.format("Kill file (%s) found, deleting and exiting.", KILL_FILE));
 					break;
 				}
+
+				Thread.sleep(1000);
 			}
 		}
 
