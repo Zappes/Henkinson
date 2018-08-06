@@ -13,6 +13,7 @@ import net.bluephod.henkinson.jenkins.model.JenkinsApiRoot;
 import net.bluephod.henkinson.jenkins.model.JenkinsBranchDescriptor;
 import net.bluephod.henkinson.jenkins.model.JenkinsProject;
 import net.bluephod.henkinson.jenkins.model.JenkinsProjectDescriptor;
+import org.pmw.tinylog.Logger;
 
 public class RemoteJenkins implements Jenkins {
 	private String jenkinsBaseUrl;
@@ -23,15 +24,21 @@ public class RemoteJenkins implements Jenkins {
 		this.jenkinsBaseUrl = jenkinsBaseUrl;
 		this.username = username;
 		this.password = password;
+
+		Logger.info(String.format("Jenkins remote access to %s initialized.", jenkinsBaseUrl));
 	}
 
 	@Override
 	public JenkinsStatus retrieveStatus() throws IOException {
+		Logger.debug(String.format("Retrieving stats from %s", jenkinsBaseUrl));
+
 		HttpURLConnection connection = getConnection(jenkinsBaseUrl, "GET");
 		connection.connect();
 
 		ObjectMapper mapper = new ObjectMapper();
 		JenkinsApiRoot root = mapper.readValue(connection.getInputStream(), JenkinsApiRoot.class);
+
+		Logger.debug(String.format("Found %d projects", root.getProjects().size()));
 
 		int red = 0;
 		int yellow = 0;
@@ -42,9 +49,13 @@ public class RemoteJenkins implements Jenkins {
 			connection.connect();
 
 			JenkinsProject project = mapper.readValue(connection.getInputStream(), JenkinsProject.class);
+			Logger.debug(String.format("Checking project %s", project.getName()));
+			Logger.debug(String.format("Found %d branches", project.getBranches().size()));
 
 			for(JenkinsBranchDescriptor branchDescriptor : project.getBranches()) {
 				if(branchDescriptor.isMaster()) {
+					Logger.debug(String.format("Master branch is %s", branchDescriptor.getColor()));
+
 					switch(branchDescriptor.getColor()) {
 						case "blue":
 						case "blue_anime":
