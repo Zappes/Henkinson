@@ -8,47 +8,19 @@ import java.util.Base64;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.bluephod.henkinson.jenkins.Jenkins;
+import net.bluephod.henkinson.jenkins.JenkinsStatus;
+import net.bluephod.henkinson.jenkins.RemoteJenkins;
 
 public class JenkinsReader {
 	public static void main(String[] args) throws IOException {
-		String jenkinsBaseUrl = "http://192.168.2.196:9001/api/json?pretty=true";
+		String jenkinsBaseUrl = "http://localhost:9001/api/json";
+		// String jenkinsBaseUrl = "https://jenkins.frp:8443/api/json";
+		String username = "admin";
+		String password = "admin";
 
-		URL url = new URL(jenkinsBaseUrl);
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod("GET");
-		connection.setReadTimeout(15 * 1000);
-		String encoded = Base64.getEncoder().encodeToString(("admin:admin").getBytes(StandardCharsets.UTF_8));
-		connection.setRequestProperty("Authorization", "Basic " + encoded);
-
-		connection.connect();
-
-		System.out.printf("Response code: %d%n", connection.getResponseCode());
-
-		ObjectMapper mapper = new ObjectMapper();
-		JsonNode root = mapper.readTree(connection.getInputStream());
-
-		JsonNode jobs = root.path("jobs");
-		for(JsonNode job : jobs) {
-			System.out.println("Name:     " + job.path("name").asText());
-
-			String jobUrl = job.path("url").asText();
-			System.out.println("Job-URL:  " + jobUrl);
-			String apiUrl = jobUrl + "api/json";
-			System.out.println("API-URL:  " + apiUrl);
-
-			connection = (HttpURLConnection) new URL(apiUrl).openConnection();
-			connection.setRequestMethod("GET");
-			connection.setReadTimeout(15 * 1000);
-			encoded = Base64.getEncoder().encodeToString(("admin:admin").getBytes(StandardCharsets.UTF_8));
-			connection.setRequestProperty("Authorization", "Basic " + encoded);
-			connection.connect();
-
-			JsonNode branches = mapper.readTree(connection.getInputStream()).path("jobs");
-
-			for(JsonNode branch : branches) {
-				System.out.println("  Name:  " + branch.path("name"));
-				System.out.println("  Color: " + branch.path("color"));
-			}
-		}
+		Jenkins jenkins = new RemoteJenkins(jenkinsBaseUrl, username, password);
+		JenkinsStatus status = jenkins.retrieveStatus();
+		System.out.println("\n\n===> Overall Jenkins status: " + status);
 	}
 }

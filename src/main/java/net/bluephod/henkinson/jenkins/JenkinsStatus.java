@@ -26,4 +26,13 @@ public class JenkinsStatus {
 	public int getTotal() {
 		return red + green + yellow;
 	}
+
+	@Override
+	public String toString() {
+		return "JenkinsStatus{" +
+				"green=" + green +
+				", yellow=" + yellow +
+				", red=" + red +
+				'}';
+	}
 }
