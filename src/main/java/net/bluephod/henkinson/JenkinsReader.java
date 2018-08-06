@@ -1,13 +1,7 @@
 package net.bluephod.henkinson;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.Jenkins;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
@@ -15,6 +9,11 @@ import net.bluephod.henkinson.jenkins.RemoteJenkins;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 
+/**
+ * Test class to play with Jenkins without actually driving any LEDs.
+ * <p>
+ * This one is quite handy for working on the API code as no Raspberry Pi is needed to execute this code.
+ */
 public class JenkinsReader {
 	public static void main(String[] args) throws IOException {
 		Configuration config = Configuration.getInstance();
