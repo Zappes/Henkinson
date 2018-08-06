@@ -25,6 +25,14 @@ public class Configuration {
 	private String password;
 	@JsonProperty
 	private String loglevel;
+	@JsonProperty
+	private String killfile;
+	@JsonProperty
+	private int gpio;
+	@JsonProperty
+	private int brightness;
+	@JsonProperty
+	private int pixels;
 
 	@JsonIgnore
 	private static Configuration instance;
@@ -63,5 +71,21 @@ public class Configuration {
 
 	public String getLoglevel() {
 		return loglevel;
+	}
+
+	public String getKillfile() {
+		return killfile;
+	}
+
+	public int getGpio() {
+		return gpio;
+	}
+
+	public int getBrightness() {
+		return brightness;
+	}
+
+	public int getPixels() {
+		return pixels;
 	}
 }

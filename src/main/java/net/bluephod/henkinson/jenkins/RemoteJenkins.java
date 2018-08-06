@@ -24,8 +24,6 @@ public class RemoteJenkins implements Jenkins {
 		this.jenkinsBaseUrl = jenkinsBaseUrl;
 		this.username = username;
 		this.password = password;
-
-		Logger.info(String.format("Jenkins remote access to %s initialized.", jenkinsBaseUrl));
 	}
 
 	@Override

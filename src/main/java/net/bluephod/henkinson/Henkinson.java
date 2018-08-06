@@ -7,23 +7,40 @@ import java.nio.file.Paths;
 
 import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.rpiws281x.WS281x;
+import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.DummyJenkins;
 import net.bluephod.henkinson.jenkins.Jenkins;
 import net.bluephod.henkinson.ledstrip.StripController;
+import org.pmw.tinylog.Configurator;
+import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 
 public class Henkinson {
-	private static final Path KILL_FILE = Paths.get("/home/pi/henkinson/killfile");
+	private final Configuration config;
+
+	public Henkinson() throws IOException {
+		config = Configuration.getInstance();
+
+		Configurator.currentConfig()
+				.level(Level.valueOf(config.getLoglevel()))
+				.activate();
+	}
 
 	public static void main(String[] args) throws Exception {
+		int returnValue = new Henkinson().run();
+		Logger.info("Exiting Henkinson.");
+		System.exit(returnValue);
+	}
+
+	private int run() throws IOException, InterruptedException {
 		// must be 18 or 10 - those pins can do PWM
-		int gpioNum = 18;
+		int gpioNum = config.getGpio();
 
 		// 0..255
-		int brightness = 64;
+		int brightness = config.getBrightness();
 
 		// number of LEDs in the strip
-		int numPixels = 60;
+		int numPixels = config.getPixels();
 
 		Logger.info(String.format("Using GPIO %d", gpioNum));
 
@@ -35,7 +52,7 @@ public class Henkinson {
 				controller.showStatus(jenkins.retrieveStatus());
 
 				if(serviceShouldStop()) {
-					Logger.info(String.format("Kill file (%s) found, deleting and exiting.", KILL_FILE));
+					Logger.info(String.format("Kill file (%s) found, deleting and exiting.", config.getKillfile()));
 					break;
 				}
 
@@ -43,11 +60,10 @@ public class Henkinson {
 			}
 		}
 
-		Logger.info("Exiting Henkinson.");
-		System.exit(0);
+		return 0;
 	}
 
-	private static boolean serviceShouldStop() throws IOException {
-		return Files.deleteIfExists(KILL_FILE);
+	private boolean serviceShouldStop() throws IOException {
+		return Files.deleteIfExists(Paths.get(config.getKillfile()));
 	}
 }
