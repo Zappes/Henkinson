@@ -20,6 +20,8 @@ public class JenkinsProjectDescriptor extends AbstractJenkinsObject {
 	private String name;
 	@JsonProperty
 	private String url;
+	@JsonProperty
+	private String color;
 
 	/**
 	 * The name of the project.
@@ -51,5 +53,17 @@ public class JenkinsProjectDescriptor extends AbstractJenkinsObject {
 	 */
 	public String getApiUrl() {
 		return getApiUrl(url);
+	}
+
+	/**
+	 * If a project has no branches, the project descriptor will already have a color.
+	 *
+	 * For projects that have branches, this method returns null and one will have to look at the branch list to find out what the color of
+	 * the master is. Single-branch projects have a valid color here, and it will be counted as if it was a master branch.
+	 *
+	 * @return The color for a single-branch project or null for a multi-branch project.
+	 */
+	public String getColor() {
+		return color;
 	}
 }
