@@ -7,7 +7,6 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bluephod.henkinson.jenkins.model.JenkinsApiRoot;
 import net.bluephod.henkinson.jenkins.model.JenkinsBranchDescriptor;
@@ -15,6 +14,12 @@ import net.bluephod.henkinson.jenkins.model.JenkinsProject;
 import net.bluephod.henkinson.jenkins.model.JenkinsProjectDescriptor;
 import org.pmw.tinylog.Logger;
 
+/**
+ * A Jenkins driver that connects to an actual Jenkins server.
+ *
+ * Please note that this was only tested with Jenkins 2.130 and multibranch projects. I have no clue if it will work on earlier or later
+ * versions and with other types of projects.
+ */
 public class RemoteJenkins implements Jenkins {
 	private String jenkinsBaseUrl;
 	private String username;
