@@ -2,7 +2,6 @@ package net.bluephod.henkinson;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import com.diozero.ws281xj.LedDriverInterface;
@@ -10,7 +9,8 @@ import com.diozero.ws281xj.rpiws281x.WS281x;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.DummyJenkins;
 import net.bluephod.henkinson.jenkins.Jenkins;
-import net.bluephod.henkinson.ledstrip.StripController;
+import net.bluephod.henkinson.visualization.BuildStatusVisualization;
+import net.bluephod.henkinson.visualization.VuMeterBuildStatusVisualization;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
@@ -46,18 +46,25 @@ public class Henkinson {
 
 		try(LedDriverInterface ledDriver = new WS281x(gpioNum, brightness, numPixels)) {
 			Jenkins jenkins = new DummyJenkins();
-			StripController controller = new StripController(ledDriver);
+			BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
+
+			visualization.init(ledDriver, jenkins.retrieveStatus());
+			Thread.sleep(1000);
 
 			while(true) {
-				controller.showStatus(jenkins.retrieveStatus());
+				visualization.update(jenkins.retrieveStatus());
 
 				if(serviceShouldStop()) {
 					Logger.info(String.format("Kill file (%s) found, deleting and exiting.", config.getKillfile()));
 					break;
 				}
 
+				// it would be nice to have some kind of event trigger on status change in Jenkins instead of periodically polling the status. maybe
+				// in a future release.
 				Thread.sleep(1000);
 			}
+
+			visualization.shutDown();
 		}
 
 		return 0;

@@ -1,4 +1,4 @@
-package net.bluephod.henkinson.ledstrip;
+package net.bluephod.henkinson.visualization;
 
 import java.util.Objects;
 
@@ -6,18 +6,48 @@ import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.PixelColour;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
 
-public class StripController {
+/**
+ * Visualizes the build status as a simple VU meter.
+ *
+ * This visualization sets segments of the strip to red, yellow and green according to the proportions of the red, yellow and green
+ * branches in the status, much like a VU meter.
+ */
+public class VuMeterBuildStatusVisualization implements BuildStatusVisualization {
 
 	private LedDriverInterface driver;
 	private StatusLedDistribution currentDist;
 
-	public StripController(final LedDriverInterface driver) {
+	@Override
+	public void init(final LedDriverInterface driver, final JenkinsStatus initialStatus) {
 		if(driver == null) {
 			throw new IllegalArgumentException("Driver may not be null");
 		}
 
 		this.driver = driver;
-		this.currentDist = getDistribution(new JenkinsStatus(1, 1, 1));
+		this.currentDist = getDistribution(initialStatus);
+	}
+
+	@Override
+	public void update(JenkinsStatus status) {
+		StatusLedDistribution target = getDistribution(status);
+
+		while(!currentDist.equals(target)) {
+			currentDist = morphTo(currentDist, target);
+
+			renderDistribution(currentDist);
+
+			try {
+				Thread.sleep(25);
+			}
+			catch(InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
+	@Override
+	public void shutDown() {
+		driver.allOff();
 	}
 
 	protected StatusLedDistribution getDistribution(JenkinsStatus status) {
@@ -45,23 +75,6 @@ public class StripController {
 		}
 
 		return new StatusLedDistribution(green, yellow, red);
-	}
-
-	public void showStatus(JenkinsStatus status) {
-		StatusLedDistribution target = getDistribution(status);
-
-		while(!currentDist.equals(target)) {
-			currentDist = morphTo(currentDist, target);
-
-			renderDistribution(currentDist);
-
-			try {
-				Thread.sleep(25);
-			}
-			catch(InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-		}
 	}
 
 	protected StatusLedDistribution morphTo(StatusLedDistribution current, StatusLedDistribution target) {
@@ -110,9 +123,13 @@ public class StripController {
 	}
 
 	protected void renderDistribution(StatusLedDistribution dist) {
-		setPixelRange(0, dist.getGreen(), PixelColour.GREEN);
-		setPixelRange(dist.getGreen(), dist.getYellow(), PixelColour.YELLOW);
-		setPixelRange(dist.getGreen() + dist.getYellow(), dist.getRed(), PixelColour.RED);
+		renderDistribution(dist, PixelColour.GREEN, PixelColour.YELLOW, PixelColour.RED);
+	}
+
+	protected void renderDistribution(StatusLedDistribution dist, int colorGreen, int colorYellow, int colorRed) {
+		setPixelRange(0, dist.getGreen(), colorGreen);
+		setPixelRange(dist.getGreen(), dist.getYellow(), colorYellow);
+		setPixelRange(dist.getGreen() + dist.getYellow(), dist.getRed(), colorRed);
 
 		driver.render();
 	}
