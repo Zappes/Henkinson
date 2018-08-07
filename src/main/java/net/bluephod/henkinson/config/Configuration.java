@@ -93,6 +93,15 @@ public class Configuration {
 	private String killfile;
 
 	/**
+	 * The pause in ms between polling cycles.
+	 * <p>
+	 * If this has the default value of 1000, the status will be polled every second. You should be able to figure out everything else by
+	 * yourself.
+	 */
+	@JsonProperty
+	private int interval = 1000;
+
+	/**
 	 * The GPIO pin to which your LED strip is connected.
 	 *
 	 * As the code uses WS2812 over PWM, only pins 18 and 10 are valid on a Pi Zero. I think that another pin is available on the Pi 3, but
@@ -174,6 +183,10 @@ public class Configuration {
 
 	public String getKillfile() {
 		return killfile;
+	}
+
+	public int getInterval() {
+		return interval;
 	}
 
 	public int getGpio() {

@@ -8,7 +8,7 @@ import net.bluephod.henkinson.jenkins.JenkinsStatus;
 
 /**
  * Visualizes the build status as a simple VU meter.
- *
+ * <p>
  * This visualization sets segments of the strip to red, yellow and green according to the proportions of the red, yellow and green
  * branches in the status, much like a VU meter.
  */
@@ -25,6 +25,8 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 
 		this.driver = driver;
 		this.currentDist = getDistribution(initialStatus);
+
+		renderDistribution(currentDist);
 	}
 
 	@Override
@@ -78,6 +80,10 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	}
 
 	protected StatusLedDistribution morphTo(StatusLedDistribution current, StatusLedDistribution target) {
+		if(current.equals(target)) {
+			return current;
+		}
+
 		if(current.getTotal() != target.getTotal()) {
 			throw new IllegalArgumentException("Distribuitions for morphing must be of equal size");
 		}

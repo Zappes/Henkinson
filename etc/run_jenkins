@@ -1,0 +1,9 @@
+#!/bin/bash
+
+JENKINS_VOLUME=$PWD/jenkinsvolume
+
+if [ ! -d "$JENKINS_VOLUME" ]; then
+  mkdir $JENKINS_VOLUME
+fi
+
+docker run -d -p 9001:8080 -v $JENKINS_VOLUME:/var/jenkins_home:z -t --name jenkins jenkins
