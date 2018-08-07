@@ -36,7 +36,7 @@ public class JenkinsBranchDescriptor extends AbstractJenkinsObject {
 	 * @return The name of the branch.
 	 */
 	public String getName() {
-		return name;
+		return urlDecode(name);
 	}
 
 	/**

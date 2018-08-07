@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.model.JenkinsApiRoot;
 import net.bluephod.henkinson.jenkins.model.JenkinsBranchDescriptor;
 import net.bluephod.henkinson.jenkins.model.JenkinsProject;
@@ -16,7 +17,7 @@ import org.pmw.tinylog.Logger;
 
 /**
  * A Jenkins driver that connects to an actual Jenkins server.
- *
+ * <p>
  * Please note that this was only tested with Jenkins 2.130 and multibranch projects. I have no clue if it will work on earlier or later
  * versions and with other types of projects.
  */
@@ -60,10 +61,11 @@ public class RemoteJenkins implements Jenkins {
 			}
 
 			Logger.debug(String.format("Found %d branches", project.getBranches().size()));
+			boolean includeFeatureBranches = Configuration.getInstance().isIncludeFeatureBranches();
 
 			for(JenkinsBranchDescriptor branchDescriptor : project.getBranches()) {
-				if(branchDescriptor.isMaster()) {
-					Logger.debug(String.format("Master branch is %s", branchDescriptor.getColor()));
+				if(includeFeatureBranches || branchDescriptor.isMaster()) {
+					Logger.debug(String.format("Branch '%s' is %s", branchDescriptor.getName(), branchDescriptor.getColor()));
 
 					switch(branchDescriptor.getColor()) {
 						case "blue":
@@ -74,8 +76,11 @@ public class RemoteJenkins implements Jenkins {
 						case "yellow_anime":
 							yellow++;
 							break;
-						default:
+						case "red":
+						case "red_anime":
 							red++;
+						default:
+							// simply ignore the grey and disabled ones
 					}
 				}
 			}

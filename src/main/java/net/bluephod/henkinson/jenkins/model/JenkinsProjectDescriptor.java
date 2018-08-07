@@ -27,7 +27,7 @@ public class JenkinsProjectDescriptor extends AbstractJenkinsObject {
 	 * @return The name of the project.
 	 */
 	public String getName() {
-		return name;
+		return urlDecode(name);
 	}
 
 	/**

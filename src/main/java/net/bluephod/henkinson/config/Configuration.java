@@ -62,6 +62,16 @@ public class Configuration {
 	 */
 	@JsonProperty
 	private String masterBranchName;
+
+	/**
+	 * Controls if feature branches should be considered.
+	 *
+	 * If this property is set to false, only the master branches of all projects will be counted for the stats. If it is true, <i>all</i>
+	 * branches are counted.
+	 */
+	@JsonProperty
+	private boolean includeFeatureBranches = false;
+
 	/**
 	 * The log level for output.
 	 *
@@ -152,6 +162,10 @@ public class Configuration {
 
 	public String getMasterBranchName() {
 		return masterBranchName;
+	}
+
+	public boolean isIncludeFeatureBranches() {
+		return includeFeatureBranches;
 	}
 
 	public String getLoglevel() {
