@@ -1,8 +1,11 @@
 package net.bluephod.henkinson.jenkins.model;
 
+import java.io.IOException;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import net.bluephod.henkinson.config.Configuration;
 
 /**
  * A descriptor for a branch in a specific Jenkins project.
@@ -52,12 +55,17 @@ public class JenkinsBranchDescriptor extends AbstractJenkinsObject {
 	/**
 	 * Returns true if this branch is called "master".
 	 *
-	 * Yes, this one's not that necessary, but I prefer a method call to a String comparison in the code that looks for the master branches.
+	 * The main reason for including this method was that it was easier to make the master branch name configurable like this.
 	 *
 	 * @return True if this branch is called "master".
 	 */
 	@JsonIgnore
 	public boolean isMaster() {
-		return "master".equalsIgnoreCase(name);
+		try {
+			return Configuration.getInstance().getMasterBranchName().equalsIgnoreCase(name);
+		}
+		catch(IOException e) {
+			throw new IllegalStateException("Configuration wasn't initialized properly.", e);
+		}
 	}
 }

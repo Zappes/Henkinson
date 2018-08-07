@@ -56,6 +56,13 @@ public class Configuration {
 	private String password;
 
 	/**
+	 * The name of the branch that's considered to be the master branch of a project.
+	 *
+	 * If you use git, this should normally be "master".
+	 */
+	@JsonProperty
+	private String masterBranchName;
+	/**
 	 * The log level for output.
 	 *
 	 * @see https://tinylog.org/configuration#level
@@ -141,6 +148,10 @@ public class Configuration {
 
 	public String getPassword() {
 		return password;
+	}
+
+	public String getMasterBranchName() {
+		return masterBranchName;
 	}
 
 	public String getLoglevel() {
