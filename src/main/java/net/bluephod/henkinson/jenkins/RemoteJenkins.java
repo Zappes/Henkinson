@@ -48,6 +48,12 @@ public class RemoteJenkins implements Jenkins {
 
 			JenkinsProject project = mapper.readValue(connection.getInputStream(), JenkinsProject.class);
 			Logger.debug(String.format("Checking project %s", project.getName()));
+
+			if(project.getBranches() == null) {
+				Logger.debug(String.format("Branches collection for project %s is null, skipping.", project.getName()));
+				continue;
+			}
+
 			Logger.debug(String.format("Found %d branches", project.getBranches().size()));
 
 			for(JenkinsBranchDescriptor branchDescriptor : project.getBranches()) {
