@@ -12,7 +12,9 @@ The Henkinson is a Raspberry Pi Zero W. It has an LED strip with those nifty WS2
 
 At the time of writing, the hardware wasn't done yet. Instead of being nice and clean and Star-Trek-Like, it's a box with wires and a puny 1m strip of LEDs. It looks like this right now:
 
- ![Multimeter](etc/images/henkinson1.jpg) ![Strip](etc/images/henkinson2.png)
+ ![Multimeter](etc/images/henkinson1.jpg)
+ 
+ ![Strip](etc/images/henkinson2.png)
  
  ![Real Data](etc/images/henkinson3.jpg)
 
