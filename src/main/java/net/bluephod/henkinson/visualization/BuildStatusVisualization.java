@@ -18,8 +18,8 @@ public interface BuildStatusVisualization {
 	 * Initializes the visualization.
 	 * <p>
 	 * When this method is called, the visualization receivers a LED driver instance and the initial status to be displayed. The
-	 * visualization may assume that at this point, all LEDs are off and that some starting animation from that state to the visualization
-	 * of the initial status should be shown.
+	 * visualization may assume that some starting animation from that state to the visualization of the initial status should be shown.
+	 * The current state of the strip is whatever the last visualization showed, so take care to create some nice transition here.
 	 * <p>
 	 * This method may only be called again if the shutdown method was called before.
 	 *
@@ -46,8 +46,8 @@ public interface BuildStatusVisualization {
 	/**
 	 * This method is called when the visualization is expected to shut down.
 	 *
-	 * After this method is called, a different visualization may be started or the service may stop. In any case, all LEDs should be off
-	 * when this method returns.
+	 * After this method is called, a different visualization may be started or the service may stop. You may just leave the last state of
+	 * your visualization active here - if another one follows, that will have to create some kind of transition.
 	 *
 	 * Note that this method must return within a reasonable time (less than a second would be great) as its execution blocks service
 	 * shutdown.

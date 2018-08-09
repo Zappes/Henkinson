@@ -14,6 +14,13 @@ import net.bluephod.henkinson.jenkins.JenkinsStatus;
  */
 public class VuMeterBuildStatusVisualization implements BuildStatusVisualization {
 
+	private static final int DELAY_PIXEL_FADE = 5;
+	private static final int DELAY_MORPH = 25;
+
+	private static final int COLOR_GREEN = PixelColour.createColourRGB(0, 255, 0);
+	private static final int COLOR_YELLOW = PixelColour.createColourRGB(255, 255, 0);
+	private static final int COLOR_RED = PixelColour.createColourRGB(255, 0, 0);
+
 	private LedDriverInterface driver;
 	private StatusLedDistribution currentDist;
 
@@ -26,7 +33,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		this.driver = driver;
 		this.currentDist = getDistribution(initialStatus);
 
-		renderDistribution(currentDist);
+		fadeToDistribution(currentDist);
 	}
 
 	@Override
@@ -39,7 +46,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 			renderDistribution(currentDist);
 
 			try {
-				Thread.sleep(25);
+				Thread.sleep(DELAY_MORPH);
 			}
 			catch(InterruptedException e) {
 				Thread.currentThread().interrupt();
@@ -49,7 +56,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 
 	@Override
 	public void shutDown() {
-		driver.allOff();
+		// nothing to be done here
 	}
 
 	protected StatusLedDistribution getDistribution(JenkinsStatus status) {
@@ -129,13 +136,9 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	}
 
 	protected void renderDistribution(StatusLedDistribution dist) {
-		renderDistribution(dist, PixelColour.GREEN, PixelColour.YELLOW, PixelColour.RED);
-	}
-
-	protected void renderDistribution(StatusLedDistribution dist, int colorGreen, int colorYellow, int colorRed) {
-		setPixelRange(0, dist.getGreen(), colorGreen);
-		setPixelRange(dist.getGreen(), dist.getYellow(), colorYellow);
-		setPixelRange(dist.getGreen() + dist.getYellow(), dist.getRed(), colorRed);
+		setPixelRange(0, dist.getGreen(), COLOR_GREEN);
+		setPixelRange(dist.getGreen(), dist.getYellow(), COLOR_YELLOW);
+		setPixelRange(dist.getGreen() + dist.getYellow(), dist.getRed(), COLOR_RED);
 
 		driver.render();
 	}
@@ -144,6 +147,54 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		for(int index = startIndex; index < startIndex + count; index++) {
 			driver.setPixelColour(index, colour);
 		}
+	}
+
+	protected int getPixelColor(StatusLedDistribution dist, int pixel) {
+		if(pixel >= driver.getNumPixels()) {
+			return 0;
+		}
+
+		if(pixel >= dist.getGreen() + dist.getYellow()) {
+			return COLOR_RED;
+		}
+
+		if(pixel >= dist.getGreen()) {
+			return COLOR_YELLOW;
+		}
+
+		return COLOR_GREEN;
+	}
+
+	protected void fadeToDistribution(StatusLedDistribution dist) {
+		for(int pixel = 0; pixel < driver.getNumPixels(); pixel++) {
+			fadePixelToTarget(pixel, getPixelColor(dist, pixel));
+		}
+	}
+
+	protected void fadePixelToTarget(int pixel, int targetColor) {
+		while(targetColor != driver.getPixelColour(pixel)) {
+			int red = getNextFadeValue(driver.getRedComponent(pixel), PixelColour.getRedComponent(targetColor));
+			int green = getNextFadeValue(driver.getGreenComponent(pixel), PixelColour.getGreenComponent(targetColor));
+			int blue = getNextFadeValue(driver.getBlueComponent(pixel), PixelColour.getBlueComponent(targetColor));
+
+			driver.setPixelColour(pixel, PixelColour.createColourRGB(red, green, blue));
+			driver.render();
+
+			try {
+				Thread.sleep(DELAY_PIXEL_FADE);
+			}
+			catch(InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
+	protected int getNextFadeValue(int current, int target) {
+		if(current == target) {
+			return current;
+		}
+
+		return current > target ? current - 1 : current + 1;
 	}
 
 	private static class StatusLedDistribution {
@@ -188,17 +239,17 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 			}
 			StatusLedDistribution that = (StatusLedDistribution) o;
 			return green == that.green &&
-				yellow == that.yellow &&
-				red == that.red;
+					yellow == that.yellow &&
+					red == that.red;
 		}
 
 		@Override
 		public String toString() {
 			return "StatusLedDistribution{" +
-				"green=" + green +
-				", yellow=" + yellow +
-				", red=" + red +
-				'}';
+					"green=" + green +
+					", yellow=" + yellow +
+					", red=" + red +
+					'}';
 		}
 	}
 }
