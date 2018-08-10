@@ -17,6 +17,8 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	private static final int DELAY_PIXEL_FADE = 5;
 	private static final int DELAY_MORPH = 25;
 
+	private static final int SPEED_PIXEL_FADE = 2;
+
 	private static final int COLOR_GREEN = PixelColour.createColourRGB(0, 255, 0);
 	private static final int COLOR_YELLOW = PixelColour.createColourRGB(255, 255, 0);
 	private static final int COLOR_RED = PixelColour.createColourRGB(255, 0, 0);
@@ -166,18 +168,13 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	}
 
 	protected void fadeToDistribution(StatusLedDistribution dist) {
-		for(int pixel = 0; pixel < driver.getNumPixels(); pixel++) {
-			fadePixelToTarget(pixel, getPixelColor(dist, pixel));
-		}
-	}
+		boolean changeHasOccurred = false;
 
-	protected void fadePixelToTarget(int pixel, int targetColor) {
-		while(targetColor != driver.getPixelColour(pixel)) {
-			int red = getNextFadeValue(driver.getRedComponent(pixel), PixelColour.getRedComponent(targetColor));
-			int green = getNextFadeValue(driver.getGreenComponent(pixel), PixelColour.getGreenComponent(targetColor));
-			int blue = getNextFadeValue(driver.getBlueComponent(pixel), PixelColour.getBlueComponent(targetColor));
+		do {
+			for(int pixel = 0; pixel < driver.getNumPixels(); pixel++) {
+				changeHasOccurred |= fadePixelTowardsTarget(pixel, getPixelColor(dist, pixel));
+			}
 
-			driver.setPixelColour(pixel, PixelColour.createColourRGB(red, green, blue));
 			driver.render();
 
 			try {
@@ -187,6 +184,21 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 				Thread.currentThread().interrupt();
 			}
 		}
+		while(changeHasOccurred);
+	}
+
+	protected boolean fadePixelTowardsTarget(int pixel, int targetColor) {
+		if(targetColor != driver.getPixelColour(pixel)) {
+			int red = getNextFadeValue(driver.getRedComponent(pixel), PixelColour.getRedComponent(targetColor));
+			int green = getNextFadeValue(driver.getGreenComponent(pixel), PixelColour.getGreenComponent(targetColor));
+			int blue = getNextFadeValue(driver.getBlueComponent(pixel), PixelColour.getBlueComponent(targetColor));
+
+			driver.setPixelColour(pixel, PixelColour.createColourRGB(red, green, blue));
+
+			return true;
+		}
+
+		return false;
 	}
 
 	protected int getNextFadeValue(int current, int target) {
@@ -194,7 +206,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 			return current;
 		}
 
-		return current > target ? current - 1 : current + 1;
+		return current > target ? Math.max(current - SPEED_PIXEL_FADE, target) : Math.min(current + SPEED_PIXEL_FADE, target);
 	}
 
 	private static class StatusLedDistribution {
