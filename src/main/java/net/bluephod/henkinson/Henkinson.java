@@ -1,6 +1,7 @@
 package net.bluephod.henkinson;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -16,7 +17,11 @@ import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 
 public class Henkinson {
+	public static final int EXIT_CODE_CON_TIME_OUT = 1;
+	public static final int EXIT_CODE_OK = 0;
+
 	private final Configuration config;
+	private int connectionRetry = 0;
 
 	public Henkinson() throws IOException {
 		config = Configuration.getInstance();
@@ -33,41 +38,72 @@ public class Henkinson {
 	}
 
 	private int run() throws IOException, InterruptedException {
-		// must be 18 or 10 - those pins can do PWM
-		int gpioNum = config.getGpio();
-		// 0..255
-		int brightness = config.getBrightness();
-		// number of LEDs in the strip
-		int numPixels = config.getPixels();
-		// pause in ms between polling cycles
-		int interval = config.getInterval();
+		boolean serviceStopped = false;
 
-		Logger.info(String.format("Using GPIO %d", gpioNum));
-
-		try(LedDriverInterface ledDriver = new WS281x(gpioNum, brightness, numPixels)) {
-			Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
-			BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
-
-			visualization.init(ledDriver, jenkins.retrieveStatus());
-			Thread.sleep(interval);
-
-			while(true) {
-				if(serviceShouldStop()) {
-					Logger.info(String.format("Kill file (%s) found, deleting and exiting.", config.getKillfile()));
-					break;
-				}
-
-				visualization.update(jenkins.retrieveStatus());
-
-				// it would be nice to have some kind of event trigger on status change in Jenkins instead of periodically polling the status. maybe
-				// in a future release.
-				Thread.sleep(interval);
+		do {
+			try(LedDriverInterface ledDriver = new WS281x(config.getGpio(), config.getBrightness(), config.getPixels())) {
+				executeVisualizations(ledDriver);
+				serviceStopped = true;
 			}
-
-			visualization.shutDown();
+			catch(SocketTimeoutException e) {
+				if(connectionRetry >= config.getConnectionRetries()) {
+					Logger.warn("Maximum number of connection retries (" + config.getConnectionRetries() + " exceeded, exiting.");
+					return EXIT_CODE_CON_TIME_OUT;
+				}
+				else {
+					connectionRetry++;
+					Logger.info("Connection to Jenkins server timed out, retrying.");
+					Thread.sleep(config.getConnectionRetryDelay());
+				}
+			}
 		}
+		while(!serviceStopped);
 
-		return 0;
+		return EXIT_CODE_OK;
+	}
+
+	/**
+	 * Shows the actual visualizations until the service is stopped through the creation of the killfile.
+	 *
+	 * @param ledDriver The LED driver to use for visualizations.
+	 *
+	 * @throws IOException If something goes wrong while reading data from Jenkins.
+	 */
+	private void executeVisualizations(final LedDriverInterface ledDriver) throws IOException {
+		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
+		BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
+
+		visualization.init(ledDriver, jenkins.retrieveStatus());
+		connectionRetry = 0;
+		sleep(config.getInterval());
+
+		while(!serviceShouldStop()) {
+			visualization.update(jenkins.retrieveStatus());
+			connectionRetry = 0;
+
+			// it would be nice to have some kind of event trigger on status change in Jenkins instead of periodically polling the status. maybe
+			// in a future release.
+			sleep(config.getInterval());
+		}
+		Logger.info(String.format("Kill file (%s) found, deleting and exiting.", config.getKillfile()));
+
+		visualization.shutDown();
+	}
+
+	/**
+	 * Pause without having to deal with an InterruptedException.
+	 *
+	 * @param sleepMillis The number of millseconds for which to pause.
+	 *
+	 * @see Thread#sleep(long)
+	 */
+	private void sleep(int sleepMillis) {
+		try {
+			Thread.sleep(sleepMillis);
+		}
+		catch(InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	private boolean serviceShouldStop() throws IOException {

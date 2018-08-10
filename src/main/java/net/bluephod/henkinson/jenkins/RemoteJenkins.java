@@ -56,6 +56,7 @@ public class RemoteJenkins implements Jenkins {
 
 	private void processProject(final JenkinsProjectDescriptor projectDescriptor, final ObjectMapper mapper,
 			final ColorHolder colors) throws IOException {
+
 		HttpURLConnection connection;
 		connection = getConnection(projectDescriptor.getApiUrl(), "GET");
 		connection.connect();

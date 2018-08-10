@@ -16,7 +16,6 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 
 	private static final int DELAY_PIXEL_FADE = 5;
 	private static final int DELAY_MORPH = 25;
-
 	private static final int SPEED_PIXEL_FADE = 2;
 
 	private static final int COLOR_GREEN = PixelColour.createColourRGB(0, 255, 0);

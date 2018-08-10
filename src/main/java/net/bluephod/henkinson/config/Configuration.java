@@ -42,6 +42,18 @@ public class Configuration {
 	private String jenkinsBaseUrl;
 
 	/**
+	 * If a connection to Jenkins times out, this is the number of retries that will be attempted.
+	 */
+	@JsonProperty
+	private int connectionRetries = 10;
+
+	/**
+	 * The delay between connection retries in milliseconds.
+	 */
+	@JsonProperty
+	private int connectionRetryDelay = 5000;
+
+	/**
 	 * The user name for authentication against Jenkins.
 	 */
 	@JsonProperty
@@ -159,6 +171,14 @@ public class Configuration {
 
 	public String getJenkinsBaseUrl() {
 		return jenkinsBaseUrl;
+	}
+
+	public int getConnectionRetries() {
+		return connectionRetries;
+	}
+
+	public int getConnectionRetryDelay() {
+		return connectionRetryDelay;
 	}
 
 	public String getUsername() {
