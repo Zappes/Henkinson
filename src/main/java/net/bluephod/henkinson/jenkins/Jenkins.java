@@ -1,6 +1,7 @@
 package net.bluephod.henkinson.jenkins;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * The interface for accessing a Jenkins server.

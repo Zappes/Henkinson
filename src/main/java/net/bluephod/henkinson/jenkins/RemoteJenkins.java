@@ -6,6 +6,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,17 +47,17 @@ public class RemoteJenkins implements Jenkins {
 
 		Logger.debug(String.format("Found %d projects", root.getProjects().size()));
 
-		ColorHolder colors = new ColorHolder();
+		JenkinsStatusImpl colors = new JenkinsStatusImpl();
 
 		for(JenkinsProjectDescriptor projectDescriptor : root.getProjects()) {
 			processProject(projectDescriptor, mapper, colors);
 		}
 
-		return new JenkinsStatus(colors.greenCount, colors.yellowCount, colors.redCount);
+		return colors;
 	}
 
 	private void processProject(final JenkinsProjectDescriptor projectDescriptor, final ObjectMapper mapper,
-			final ColorHolder colors) throws IOException {
+			final JenkinsStatusImpl colors) throws IOException {
 
 		HttpURLConnection connection;
 		connection = getConnection(projectDescriptor.getApiUrl(), "GET");
@@ -65,8 +67,9 @@ public class RemoteJenkins implements Jenkins {
 		if(projectColor != null) {
 			// a color is only set for single-branch projects. if there is one, we can skip all the branch stuff and simply count the project
 			// color as if it was a master branch.
-			Logger.debug(String.format("Single-branch project '%s' is %s", projectDescriptor.getName(), projectColor));
-			updateColors(projectColor, colors);
+			String projectName = projectDescriptor.getName();
+			Logger.debug(String.format("Single-branch project '%s' is %s", projectName, projectColor));
+			colors.updateStats(projectName, projectColor);
 
 			return;
 		}
@@ -81,7 +84,7 @@ public class RemoteJenkins implements Jenkins {
 	}
 
 	private void processBranches(final List<JenkinsBranchDescriptor> branches, final String projectName,
-			final ColorHolder colors) throws IOException {
+			final JenkinsStatusImpl colors) throws IOException {
 		if(branches == null) {
 			Logger.debug(String.format("Branches collection for project %s is null, skipping.", projectName));
 			return;
@@ -93,28 +96,11 @@ public class RemoteJenkins implements Jenkins {
 		for(JenkinsBranchDescriptor branchDescriptor : branches) {
 			if(includeFeatureBranches || branchDescriptor.isMaster()) {
 				String branchColor = branchDescriptor.getColor();
+				String branchName = branchDescriptor.getName();
 
-				Logger.debug(String.format("Branch '%s' is %s", branchDescriptor.getName(), branchColor));
-				updateColors(branchColor, colors);
+				Logger.debug(String.format("Branch '%s' is %s", branchName, branchColor));
+				colors.updateStats(projectName, branchName, branchColor);
 			}
-		}
-	}
-
-	private void updateColors(final String color, final ColorHolder colors) {
-		switch(color) {
-			case "blue":
-			case "blue_anime":
-				colors.greenCount++;
-				break;
-			case "yellow":
-			case "yellow_anime":
-				colors.yellowCount++;
-				break;
-			case "red":
-			case "red_anime":
-				colors.redCount++;
-			default:
-				// simply ignore the grey and disabled ones
 		}
 	}
 
@@ -133,9 +119,36 @@ public class RemoteJenkins implements Jenkins {
 		connection.setRequestProperty("Authorization", "Basic " + encoded);
 	}
 
-	private static class ColorHolder {
-		public int redCount;
-		public int yellowCount;
-		public int greenCount;
+	private static class JenkinsStatusImpl extends AbstractJenkinsStatus {
+		private List<JenkinsBranchInfo> branchInfos = new LinkedList<>();
+
+		public void updateStats(String projectName, String color) {
+			updateStats(projectName, "", color);
+		}
+
+		public void updateStats(String projectName, String branchName, String color) {
+			branchInfos.add(new JenkinsBranchInfo(projectName, branchName, color));
+
+			switch(color) {
+				case "blue":
+				case "blue_anime":
+					green++;
+					break;
+				case "yellow":
+				case "yellow_anime":
+					yellow++;
+					break;
+				case "red":
+				case "red_anime":
+					red++;
+				default:
+					// simply ignore the grey and disabled ones
+			}
+		}
+
+		@Override
+		public List<JenkinsBranchInfo> getBranchInfos() {
+			return Collections.unmodifiableList(branchInfos);
+		}
 	}
 }
