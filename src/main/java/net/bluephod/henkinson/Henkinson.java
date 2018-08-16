@@ -10,7 +10,9 @@ import com.diozero.ws281xj.rpiws281x.WS281x;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.Jenkins;
 import net.bluephod.henkinson.jenkins.RemoteJenkins;
+import net.bluephod.henkinson.visualization.BlueSplashStartUpVisualization;
 import net.bluephod.henkinson.visualization.BuildStatusVisualization;
+import net.bluephod.henkinson.visualization.StartUpVisualization;
 import net.bluephod.henkinson.visualization.VuMeterBuildStatusVisualization;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
@@ -70,6 +72,8 @@ public class Henkinson {
 	 * @throws IOException If something goes wrong while reading data from Jenkins.
 	 */
 	private void executeVisualizations(final LedDriverInterface ledDriver) throws IOException {
+		new BlueSplashStartUpVisualization().showStartUp(ledDriver);
+
 		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
 		BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
 
