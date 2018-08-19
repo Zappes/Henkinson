@@ -2,7 +2,6 @@ package net.bluephod.henkinson.visualization;
 
 import java.util.Objects;
 
-import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.PixelColour;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
 import org.pmw.tinylog.Logger;
@@ -23,16 +22,16 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	private static final int COLOR_YELLOW = PixelColour.createColourRGB(255, 255, 0);
 	private static final int COLOR_RED = PixelColour.createColourRGB(255, 0, 0);
 
-	private LedDriverInterface driver;
+	private HenkinsonCanvas canvas;
 	private StatusLedDistribution currentDist;
 
 	@Override
-	public void init(final LedDriverInterface driver, final JenkinsStatus initialStatus) {
-		if(driver == null) {
+	public void init(final HenkinsonCanvas canvas, final JenkinsStatus initialStatus) {
+		if(canvas == null) {
 			throw new IllegalArgumentException("Driver may not be null");
 		}
 
-		this.driver = driver;
+		this.canvas = canvas;
 		this.currentDist = getDistribution(initialStatus);
 
 		fadeToDistribution(currentDist);
@@ -59,13 +58,13 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	}
 
 	private StatusLedDistribution getDistribution(JenkinsStatus status) {
-		double ledsPerCount = ((double) driver.getNumPixels()) / ((double) status.getTotal());
+		double ledsPerCount = ((double) canvas.getNumberOfColumns()) / ((double) status.getTotal());
 
 		int green = (int) Math.floor(ledsPerCount * status.getGreen());
 		int yellow = (int) Math.floor(ledsPerCount * status.getYellow());
 		int red = (int) Math.floor(ledsPerCount * status.getRed());
 
-		int off = driver.getNumPixels() - (green + red + yellow);
+		int off = canvas.getNumberOfColumns() - (green + red + yellow);
 
 		while(off > 0) {
 			if(green != 0) {
@@ -134,31 +133,17 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		return new StatusLedDistribution(green, yellow, red);
 	}
 
-	private void renderDistribution(StatusLedDistribution dist) {
-		setPixelRange(0, dist.getGreen(), COLOR_GREEN);
-		setPixelRange(dist.getGreen(), dist.getYellow(), COLOR_YELLOW);
-		setPixelRange(dist.getGreen() + dist.getYellow(), dist.getRed(), COLOR_RED);
-
-		driver.render();
-	}
-
-	private void setPixelRange(int startIndex, int count, int colour) {
-		for(int index = startIndex; index < startIndex + count; index++) {
-			driver.setPixelColour(index, colour);
-		}
-	}
-
 	private void fadeToDistribution(StatusLedDistribution dist) {
 		boolean changeHasOccurred;
 
 		do {
 			changeHasOccurred = false;
 
-			for(int pixel = 0; pixel < driver.getNumPixels(); pixel++) {
-				changeHasOccurred |= fadePixelTowardsTarget(pixel, getPixelColor(dist, pixel));
+			for(int column = 0; column < canvas.getNumberOfColumns(); column++) {
+				changeHasOccurred |= fadePixelTowardsTarget(column, getPixelColor(dist, column));
 			}
 
-			driver.render();
+			canvas.render();
 
 			try {
 				Thread.sleep(DELAY_PIXEL_FADE);
@@ -170,13 +155,13 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		while(changeHasOccurred);
 	}
 
-	private boolean fadePixelTowardsTarget(int pixel, int targetColor) {
-		if(targetColor != driver.getPixelColour(pixel)) {
-			int red = getNextFadeValue(driver.getRedComponent(pixel), PixelColour.getRedComponent(targetColor));
-			int green = getNextFadeValue(driver.getGreenComponent(pixel), PixelColour.getGreenComponent(targetColor));
-			int blue = getNextFadeValue(driver.getBlueComponent(pixel), PixelColour.getBlueComponent(targetColor));
+	private boolean fadePixelTowardsTarget(int column, int targetColor) {
+		if(targetColor != canvas.getColumnColor(column)) {
+			int red = getNextFadeValue(canvas.getRedComponent(column), PixelColour.getRedComponent(targetColor));
+			int green = getNextFadeValue(canvas.getGreenComponent(column), PixelColour.getGreenComponent(targetColor));
+			int blue = getNextFadeValue(canvas.getBlueComponent(column), PixelColour.getBlueComponent(targetColor));
 
-			driver.setPixelColour(pixel, PixelColour.createColourRGB(red, green, blue));
+			canvas.setColumnColor(column, PixelColour.createColourRGB(red, green, blue));
 
 			return true;
 		}
@@ -185,7 +170,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	}
 
 	private int getPixelColor(StatusLedDistribution dist, int pixel) {
-		if(pixel >= driver.getNumPixels()) {
+		if(pixel >= canvas.getNumberOfColumns()) {
 			return 0;
 		}
 
@@ -198,6 +183,20 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		}
 
 		return COLOR_GREEN;
+	}
+
+	private void renderDistribution(StatusLedDistribution dist) {
+		setPixelRange(0, dist.getGreen(), COLOR_GREEN);
+		setPixelRange(dist.getGreen(), dist.getYellow(), COLOR_YELLOW);
+		setPixelRange(dist.getGreen() + dist.getYellow(), dist.getRed(), COLOR_RED);
+
+		canvas.render();
+	}
+
+	private void setPixelRange(int startIndex, int count, int colour) {
+		for(int column = startIndex; column < startIndex + count; column++) {
+			canvas.setColumnColor(column, colour);
+		}
 	}
 
 	private int getNextFadeValue(int current, int target) {

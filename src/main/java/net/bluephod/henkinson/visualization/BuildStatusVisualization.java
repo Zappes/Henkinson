@@ -1,6 +1,5 @@
 package net.bluephod.henkinson.visualization;
 
-import com.diozero.ws281xj.LedDriverInterface;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
 
 /**
@@ -22,11 +21,10 @@ public interface BuildStatusVisualization {
 	 * The current state of the strip is whatever the last visualization showed, so take care to create some nice transition here.
 	 * <p>
 	 * This method may only be called again if the shutdown method was called before.
-	 *
-	 * @param driver The LED driver to be used for visualization.
+	 *  @param canvas The LED driver to be used for visualization.
 	 * @param initialStatus The status to be shown initially.
 	 */
-	void init(LedDriverInterface driver, JenkinsStatus initialStatus);
+	void init(HenkinsonCanvas canvas, JenkinsStatus initialStatus);
 
 	/**
 	 * Updates the status to be shown.
