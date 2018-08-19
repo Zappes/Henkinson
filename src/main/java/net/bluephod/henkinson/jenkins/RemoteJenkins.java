@@ -42,6 +42,8 @@ public class RemoteJenkins implements Jenkins {
 		HttpURLConnection connection = getConnection(jenkinsBaseUrl, "GET");
 		connection.connect();
 
+		Logger.debug("Connected");
+
 		ObjectMapper mapper = new ObjectMapper();
 		JenkinsApiRoot root = mapper.readValue(connection.getInputStream(), JenkinsApiRoot.class);
 

@@ -2,66 +2,123 @@ package net.bluephod.henkinson;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.net.UnknownHostException;
 
 import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.rpiws281x.WS281x;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.Jenkins;
 import net.bluephod.henkinson.jenkins.RemoteJenkins;
 import net.bluephod.henkinson.visualization.BlueSplashStartUpVisualization;
 import net.bluephod.henkinson.visualization.BuildStatusVisualization;
-import net.bluephod.henkinson.visualization.StartUpVisualization;
 import net.bluephod.henkinson.visualization.VuMeterBuildStatusVisualization;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 
-public class Henkinson {
-	public static final int EXIT_CODE_CON_TIME_OUT = 1;
-	public static final int EXIT_CODE_OK = 0;
-
+public class Henkinson implements Runnable {
 	private final Configuration config;
 	private int connectionRetry = 0;
+	private boolean stopRequested;
+	private boolean stopExecuted;
 
 	public Henkinson() throws IOException {
 		config = Configuration.getInstance();
 
+		Logger.info("Using configuration: \n" + new ObjectMapper().writeValueAsString(config));
+
 		Configurator.currentConfig()
-				.level(Level.valueOf(config.getLoglevel()))
-				.activate();
+			.level(Level.valueOf(config.getLoglevel()))
+			.activate();
+
 	}
 
+	@SuppressWarnings("squid:S2189") // the loop is intended to be infinite
 	public static void main(String[] args) throws Exception {
-		int returnValue = new Henkinson().run();
-		Logger.info("Exiting Henkinson.");
-		System.exit(returnValue);
+		Henkinson henkinson = new Henkinson();
+		Thread worker = new Thread(henkinson);
+		worker.start();
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				Logger.info("Shutdown hook executing.");
+				henkinson.setStopRequested();
+				worker.interrupt();
+				Logger.info("Waiting for Henkinson to actually stop...");
+				while(!henkinson.isStopExecuted()) {
+					;
+				}
+			}
+		});
+
+		while(true) {
+			;
+		}
 	}
 
-	private int run() throws IOException, InterruptedException {
-		boolean serviceStopped = false;
+	private void setStopRequested() {
+		this.stopRequested = true;
+	}
+
+	public boolean isStopExecuted() {
+		return stopExecuted;
+	}
+
+	public void run() {
+		LedDriverInterface ledDriver = new WS281x(config.getGpio(), config.getBrightness(), config.getPixels());
+		Logger.info("LED driver initialized.");
+
+		int startDelay = config.getStartDelay();
+		if(startDelay > 0) {
+			Logger.info("Delaying startup for " + startDelay + "ms as configured.");
+			sleep(startDelay);
+			Logger.info("Continuing startup.");
+		}
 
 		do {
-			try(LedDriverInterface ledDriver = new WS281x(config.getGpio(), config.getBrightness(), config.getPixels())) {
+			try {
+				Logger.info("Starting visualizations.");
 				executeVisualizations(ledDriver);
-				serviceStopped = true;
+				Logger.info("Visualizations ended.");
 			}
-			catch(SocketTimeoutException e) {
+			catch(SocketTimeoutException | UnknownHostException e) {
 				if(connectionRetry >= config.getConnectionRetries()) {
 					Logger.warn("Maximum number of connection retries (" + config.getConnectionRetries() + " exceeded, exiting.");
-					return EXIT_CODE_CON_TIME_OUT;
+					break;
 				}
 				else {
 					connectionRetry++;
 					Logger.info("Connection to Jenkins server timed out, retrying.");
-					Thread.sleep(config.getConnectionRetryDelay());
+					sleep(config.getConnectionRetryDelay());
 				}
 			}
+			catch(Exception e) {
+				Logger.error(e, "Caught unexpected Exception, terminating");
+				break;
+			}
 		}
-		while(!serviceStopped);
+		while(!isStopRequested());
 
-		return EXIT_CODE_OK;
+		// this is where one would turn off the strip, but doing so reproducibly crashes the VM...
+		stopExecuted = true;
+	}
+
+	/**
+	 * Pause without having to deal with an InterruptedException.
+	 *
+	 * @param sleepMillis The number of millseconds for which to pause.
+	 *
+	 * @see Thread#sleep(long)
+	 */
+	private void sleep(long sleepMillis) {
+		try {
+			Thread.sleep(sleepMillis);
+		}
+		catch(InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	/**
@@ -79,9 +136,14 @@ public class Henkinson {
 
 		visualization.init(ledDriver, jenkins.retrieveStatus());
 		connectionRetry = 0;
+
+		Logger.info(String.format("Initialization done. Sleeping for %dms before first update occurs.", config.getInterval()));
+
 		sleep(config.getInterval());
 
-		while(!serviceShouldStop()) {
+		Logger.info("Starting visualization update loop.");
+
+		while(!isStopRequested()) {
 			visualization.update(jenkins.retrieveStatus());
 			connectionRetry = 0;
 
@@ -89,28 +151,9 @@ public class Henkinson {
 			// in a future release.
 			sleep(config.getInterval());
 		}
-		Logger.info(String.format("Kill file (%s) found, deleting and exiting.", config.getKillfile()));
-
-		visualization.shutDown();
 	}
 
-	/**
-	 * Pause without having to deal with an InterruptedException.
-	 *
-	 * @param sleepMillis The number of millseconds for which to pause.
-	 *
-	 * @see Thread#sleep(long)
-	 */
-	private void sleep(int sleepMillis) {
-		try {
-			Thread.sleep(sleepMillis);
-		}
-		catch(InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
-	}
-
-	private boolean serviceShouldStop() throws IOException {
-		return Files.deleteIfExists(Paths.get(config.getKillfile()));
+	private boolean isStopRequested() {
+		return stopRequested;
 	}
 }

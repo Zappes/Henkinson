@@ -42,6 +42,14 @@ public class Configuration {
 	private String jenkinsBaseUrl;
 
 	/**
+	 * Number of milliseconds for which Henkinson will wait after starup before attempting to make a http connection.
+	 * <p>
+	 * This can be useful if you experience problems with the boot order of your system, e.g. if you have to wait for some VPN to get
+	 * properly connected before the Jenkins server can be reached.
+	 */
+	@JsonProperty int startDelay = 0;
+
+	/**
 	 * If a connection to Jenkins times out, this is the number of retries that will be attempted.
 	 */
 	@JsonProperty
@@ -73,7 +81,7 @@ public class Configuration {
 	 * If you use git, this should normally be "master".
 	 */
 	@JsonProperty
-	private String masterBranchName;
+	private String masterBranchName = "master";
 
 	/**
 	 * Controls if feature branches should be considered.
@@ -90,19 +98,7 @@ public class Configuration {
 	 * @see https://tinylog.org/configuration#level
 	 */
 	@JsonProperty
-	private String loglevel;
-
-	/**
-	 * The killfile for the program.
-	 *
-	 * Henkinson will normally run in an endless loop. It will check for the existence of a file with the name specified here, and if that
-	 * exists, it will be deleted and then Henkinson will terminate. Have a look at the service configuration in etc/henkinson.service to
-	 * see how that can be used in a systemd service.
-	 *
-	 * You can also simply kill the service, but then the LED strip will stay on which is probably not what you want.
-	 */
-	@JsonProperty
-	private String killfile;
+	private String loglevel = "WARNING";
 
 	/**
 	 * The pause in ms between polling cycles.
@@ -120,7 +116,7 @@ public class Configuration {
 	 * I don't own one, so I don't know and also don't care.
 	 */
 	@JsonProperty
-	private int gpio;
+	private int gpio = 18;
 
 	/**
 	 * The brightness of the strip in a range of 0-255 with 0 being rather useless.
@@ -129,13 +125,13 @@ public class Configuration {
 	 * specified when the strip is initialized and can't be changed after that.
 	 */
 	@JsonProperty
-	private int brightness;
+	private int brightness = 64;
 
 	/**
 	 * The number of pixels/LEDs in your strip.
 	 */
 	@JsonProperty
-	private int pixels;
+	private int pixels = 120;
 
 	@JsonIgnore
 	private static Configuration instance;
@@ -173,6 +169,10 @@ public class Configuration {
 		return jenkinsBaseUrl;
 	}
 
+	public int getStartDelay() {
+		return startDelay;
+	}
+
 	public int getConnectionRetries() {
 		return connectionRetries;
 	}
@@ -199,10 +199,6 @@ public class Configuration {
 
 	public String getLoglevel() {
 		return loglevel;
-	}
-
-	public String getKillfile() {
-		return killfile;
 	}
 
 	public int getInterval() {

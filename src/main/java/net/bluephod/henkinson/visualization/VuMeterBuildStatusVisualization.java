@@ -5,6 +5,7 @@ import java.util.Objects;
 import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.PixelColour;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
+import org.pmw.tinylog.Logger;
 
 /**
  * Visualizes the build status as a simple VU meter.
@@ -44,6 +45,8 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		while(!currentDist.equals(target)) {
 			currentDist = morphTo(currentDist, target);
 
+			Logger.trace("Morphing dist. Current is " + currentDist);
+
 			renderDistribution(currentDist);
 
 			try {
@@ -55,12 +58,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		}
 	}
 
-	@Override
-	public void shutDown() {
-		// nothing to be done here
-	}
-
-	protected StatusLedDistribution getDistribution(JenkinsStatus status) {
+	private StatusLedDistribution getDistribution(JenkinsStatus status) {
 		double ledsPerCount = ((double) driver.getNumPixels()) / ((double) status.getTotal());
 
 		int green = (int) Math.floor(ledsPerCount * status.getGreen());
@@ -87,7 +85,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		return new StatusLedDistribution(green, yellow, red);
 	}
 
-	protected StatusLedDistribution morphTo(StatusLedDistribution current, StatusLedDistribution target) {
+	private StatusLedDistribution morphTo(StatusLedDistribution current, StatusLedDistribution target) {
 		if(current.equals(target)) {
 			return current;
 		}
@@ -136,7 +134,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		return new StatusLedDistribution(green, yellow, red);
 	}
 
-	protected void renderDistribution(StatusLedDistribution dist) {
+	private void renderDistribution(StatusLedDistribution dist) {
 		setPixelRange(0, dist.getGreen(), COLOR_GREEN);
 		setPixelRange(dist.getGreen(), dist.getYellow(), COLOR_YELLOW);
 		setPixelRange(dist.getGreen() + dist.getYellow(), dist.getRed(), COLOR_RED);
@@ -144,32 +142,18 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		driver.render();
 	}
 
-	protected void setPixelRange(int startIndex, int count, int colour) {
+	private void setPixelRange(int startIndex, int count, int colour) {
 		for(int index = startIndex; index < startIndex + count; index++) {
 			driver.setPixelColour(index, colour);
 		}
 	}
 
-	protected int getPixelColor(StatusLedDistribution dist, int pixel) {
-		if(pixel >= driver.getNumPixels()) {
-			return 0;
-		}
-
-		if(pixel >= dist.getGreen() + dist.getYellow()) {
-			return COLOR_RED;
-		}
-
-		if(pixel >= dist.getGreen()) {
-			return COLOR_YELLOW;
-		}
-
-		return COLOR_GREEN;
-	}
-
-	protected void fadeToDistribution(StatusLedDistribution dist) {
-		boolean changeHasOccurred = false;
+	private void fadeToDistribution(StatusLedDistribution dist) {
+		boolean changeHasOccurred;
 
 		do {
+			changeHasOccurred = false;
+
 			for(int pixel = 0; pixel < driver.getNumPixels(); pixel++) {
 				changeHasOccurred |= fadePixelTowardsTarget(pixel, getPixelColor(dist, pixel));
 			}
@@ -186,7 +170,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		while(changeHasOccurred);
 	}
 
-	protected boolean fadePixelTowardsTarget(int pixel, int targetColor) {
+	private boolean fadePixelTowardsTarget(int pixel, int targetColor) {
 		if(targetColor != driver.getPixelColour(pixel)) {
 			int red = getNextFadeValue(driver.getRedComponent(pixel), PixelColour.getRedComponent(targetColor));
 			int green = getNextFadeValue(driver.getGreenComponent(pixel), PixelColour.getGreenComponent(targetColor));
@@ -200,7 +184,23 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		return false;
 	}
 
-	protected int getNextFadeValue(int current, int target) {
+	private int getPixelColor(StatusLedDistribution dist, int pixel) {
+		if(pixel >= driver.getNumPixels()) {
+			return 0;
+		}
+
+		if(pixel >= dist.getGreen() + dist.getYellow()) {
+			return COLOR_RED;
+		}
+
+		if(pixel >= dist.getGreen()) {
+			return COLOR_YELLOW;
+		}
+
+		return COLOR_GREEN;
+	}
+
+	private int getNextFadeValue(int current, int target) {
 		if(current == target) {
 			return current;
 		}
@@ -213,7 +213,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		private int yellow;
 		private int red;
 
-		public StatusLedDistribution(final int green, final int yellow, final int red) {
+		StatusLedDistribution(final int green, final int yellow, final int red) {
 			this.green = green;
 			this.yellow = yellow;
 			this.red = red;
@@ -250,17 +250,17 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 			}
 			StatusLedDistribution that = (StatusLedDistribution) o;
 			return green == that.green &&
-					yellow == that.yellow &&
-					red == that.red;
+				yellow == that.yellow &&
+				red == that.red;
 		}
 
 		@Override
 		public String toString() {
 			return "StatusLedDistribution{" +
-					"green=" + green +
-					", yellow=" + yellow +
-					", red=" + red +
-					'}';
+				"green=" + green +
+				", yellow=" + yellow +
+				", red=" + red +
+				'}';
 		}
 	}
 }

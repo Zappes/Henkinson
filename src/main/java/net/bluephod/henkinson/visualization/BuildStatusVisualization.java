@@ -42,15 +42,4 @@ public interface BuildStatusVisualization {
 	 * @param status The status that should be visualized.
 	 */
 	void update(JenkinsStatus status);
-
-	/**
-	 * This method is called when the visualization is expected to shut down.
-	 *
-	 * After this method is called, a different visualization may be started or the service may stop. You may just leave the last state of
-	 * your visualization active here - if another one follows, that will have to create some kind of transition.
-	 *
-	 * Note that this method must return within a reasonable time (less than a second would be great) as its execution blocks service
-	 * shutdown.
-	 */
-	void shutDown();
 }

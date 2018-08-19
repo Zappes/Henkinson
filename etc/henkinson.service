@@ -9,8 +9,8 @@ Restart=always
 RestartSec=1
 User=root
 ExecStart=/usr/bin/java -XX:ErrorFile=/home/pi/henkinson/jvm_crash.log -jar /home/pi/henkinson/henkinson-full.jar
-ExecStop=touch /home/pi/henkinson/killfile
-KillMode=none
+SuccessExitStatus=143
+TimeoutStopSec=20
 
 [Install]
 WantedBy=multi-user.target
