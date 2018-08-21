@@ -29,8 +29,8 @@ public class Henkinson implements Runnable {
 		Logger.info("Using configuration: \n" + new ObjectMapper().writeValueAsString(config));
 
 		Configurator.currentConfig()
-			.level(Level.valueOf(config.getLoglevel()))
-			.activate();
+				.level(Level.valueOf(config.getLoglevel()))
+				.activate();
 
 	}
 
@@ -67,41 +67,44 @@ public class Henkinson implements Runnable {
 	}
 
 	public void run() {
-		HenkinsonCanvas canvas = new HenkinsonCanvas(new WS281x(config.getGpio(), config.getBrightness(), config.getPixels()));
-		Logger.info("LED driver initialized.");
+		try(HenkinsonCanvas canvas = new HenkinsonCanvas(new WS281x(config.getGpio(), config.getBrightness(), config.getPixels()))) {
+			Logger.info("LED driver initialized.");
 
-		int startDelay = config.getStartDelay();
-		if(startDelay > 0) {
-			Logger.info("Delaying startup for " + startDelay + "ms as configured.");
-			sleep(startDelay);
-			Logger.info("Continuing startup.");
-		}
-
-		do {
-			try {
-				Logger.info("Starting visualizations.");
-				executeVisualizations(canvas);
-				Logger.info("Visualizations ended.");
+			int startDelay = config.getStartDelay();
+			if(startDelay > 0) {
+				Logger.info("Delaying startup for " + startDelay + "ms as configured.");
+				sleep(startDelay);
+				Logger.info("Continuing startup.");
 			}
-			catch(SocketTimeoutException | UnknownHostException e) {
-				if(connectionRetry >= config.getConnectionRetries()) {
-					Logger.warn("Maximum number of connection retries (" + config.getConnectionRetries() + " exceeded, exiting.");
+
+			do {
+				try {
+					Logger.info("Starting visualizations.");
+					executeVisualizations(canvas);
+					Logger.info("Visualizations ended.");
+				}
+				catch(SocketTimeoutException | UnknownHostException e) {
+					if(connectionRetry >= config.getConnectionRetries()) {
+						Logger.warn("Maximum number of connection retries (" + config.getConnectionRetries() + " exceeded, exiting.");
+						break;
+					}
+					else {
+						connectionRetry++;
+						Logger.info("Connection to Jenkins server timed out, retrying.");
+						sleep(config.getConnectionRetryDelay());
+					}
+				}
+				catch(Exception e) {
+					Logger.error(e, "Caught unexpected Exception, terminating");
 					break;
 				}
-				else {
-					connectionRetry++;
-					Logger.info("Connection to Jenkins server timed out, retrying.");
-					sleep(config.getConnectionRetryDelay());
-				}
 			}
-			catch(Exception e) {
-				Logger.error(e, "Caught unexpected Exception, terminating");
-				break;
-			}
+			while(!isStopRequested());
 		}
-		while(!isStopRequested());
+		catch(IOException e) {
+			Logger.error("Exception when closing the canvas:", e);
+		}
 
-		// this is where one would turn off the strip, but doing so reproducibly crashes the VM...
 		stopExecuted = true;
 	}
 

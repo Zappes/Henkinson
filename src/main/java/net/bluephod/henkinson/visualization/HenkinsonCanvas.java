@@ -1,9 +1,12 @@
 package net.bluephod.henkinson.visualization;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.PixelColour;
 
-public class HenkinsonCanvas {
+public class HenkinsonCanvas implements Closeable {
 	private LedDriverInterface driver;
 
 	public HenkinsonCanvas(final LedDriverInterface driver) {
@@ -37,5 +40,10 @@ public class HenkinsonCanvas {
 
 	public int getBlueComponent(final int column) {
 		return PixelColour.getBlueComponent(getColumnColor(column));
+	}
+
+	@Override
+	public void close() throws IOException {
+		driver.allOff();
 	}
 }
