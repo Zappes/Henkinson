@@ -125,7 +125,7 @@ public class Henkinson implements Runnable {
 	}
 
 	/**
-	 * Shows the actual visualizations until the service is stopped through the creation of the killfile.
+	 * Shows the actual visualizations until the service is stopped.
 	 *
 	 * @param canvas The LED driver to use for visualizations.
 	 *
