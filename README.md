@@ -18,6 +18,8 @@ At the time of writing, the hardware wasn't done yet. Instead of being nice and 
  
  ![Real Data](etc/images/henkinson3.jpg)
 
+ ![Actual Light Box Case](etc/images/henkinson4.jpg)
+
 I will add more images when I have built some kind of case for the electronics and a nice thingie for the strip.
 
 ## How to Use This?
