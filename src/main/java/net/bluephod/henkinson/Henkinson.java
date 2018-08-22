@@ -54,7 +54,8 @@ public class Henkinson implements Runnable {
 		});
 
 		while(true) {
-			;
+			// go to sleep here, because we'll consume LOTS of CPU if we don't...
+			Thread.sleep(1000);
 		}
 	}
 
