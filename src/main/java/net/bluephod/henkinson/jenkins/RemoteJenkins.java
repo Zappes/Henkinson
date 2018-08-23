@@ -6,8 +6,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,7 +47,7 @@ public class RemoteJenkins implements Jenkins {
 
 		Logger.debug(String.format("Found %d projects", root.getProjects().size()));
 
-		JenkinsStatusImpl colors = new JenkinsStatusImpl();
+		JenkinsStatus colors = new JenkinsStatus();
 
 		for(JenkinsProjectDescriptor projectDescriptor : root.getProjects()) {
 			processProject(projectDescriptor, mapper, colors);
@@ -59,7 +57,7 @@ public class RemoteJenkins implements Jenkins {
 	}
 
 	private void processProject(final JenkinsProjectDescriptor projectDescriptor, final ObjectMapper mapper,
-			final JenkinsStatusImpl colors) throws IOException {
+			final JenkinsStatus colors) throws IOException {
 
 		HttpURLConnection connection;
 		connection = getConnection(projectDescriptor.getApiUrl(), "GET");
@@ -86,7 +84,7 @@ public class RemoteJenkins implements Jenkins {
 	}
 
 	private void processBranches(final List<JenkinsBranchDescriptor> branches, final String projectName,
-			final JenkinsStatusImpl colors) throws IOException {
+			final JenkinsStatus colors) throws IOException {
 		if(branches == null) {
 			Logger.debug(String.format("Branches collection for project %s is null, skipping.", projectName));
 			return;
@@ -121,36 +119,4 @@ public class RemoteJenkins implements Jenkins {
 		connection.setRequestProperty("Authorization", "Basic " + encoded);
 	}
 
-	private static class JenkinsStatusImpl extends AbstractJenkinsStatus {
-		private List<JenkinsBranchInfo> branchInfos = new LinkedList<>();
-
-		public void updateStats(String projectName, String color) {
-			updateStats(projectName, "", color);
-		}
-
-		public void updateStats(String projectName, String branchName, String color) {
-			branchInfos.add(new JenkinsBranchInfo(projectName, branchName, color));
-
-			switch(color) {
-				case "blue":
-				case "blue_anime":
-					green++;
-					break;
-				case "yellow":
-				case "yellow_anime":
-					yellow++;
-					break;
-				case "red":
-				case "red_anime":
-					red++;
-				default:
-					// simply ignore the grey and disabled ones
-			}
-		}
-
-		@Override
-		public List<JenkinsBranchInfo> getBranchInfos() {
-			return Collections.unmodifiableList(branchInfos);
-		}
-	}
 }

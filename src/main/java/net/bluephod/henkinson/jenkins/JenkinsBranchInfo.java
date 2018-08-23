@@ -5,6 +5,12 @@ public class JenkinsBranchInfo {
 	private String branchName;
 	private String color;
 
+	/**
+	 * Only to be used for JSON deserialization.
+	 */
+	public JenkinsBranchInfo() {
+	}
+
 	public JenkinsBranchInfo(final String projectName, final String branchName, final String color) {
 		this.projectName = projectName;
 		this.branchName = branchName;

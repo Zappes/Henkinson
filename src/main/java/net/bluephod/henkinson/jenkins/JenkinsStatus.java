@@ -1,42 +1,72 @@
 package net.bluephod.henkinson.jenkins;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
-/**
- * Represents the overall build status of a Jenkins server.
- *
- * Yes, Jenkins 2 has blue balls, not green ones. I think that's utterly stupid, though, so I call the good builds green. Sue me.
- */
-public interface JenkinsStatus {
-	/**
-	 * The number of master branches on the server that had successful builds.
-	 *
-	 * @return The number of successful projects.
-	 */
-	int getGreen();
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-	/**
-	 * The number of master branches on the server that had unstable builds.
-	 *
-	 * Being unstable normally means that the project's tests have failed, but everything else was fine.
-	 *
-	 * @return The number of unstable projects.
-	 */
-	int getYellow();
+@JsonIgnoreProperties(ignoreUnknown=true)
+public final class JenkinsStatus {
+	private int red;
+	private int yellow;
+	private int green;
+	private List<JenkinsBranchInfo> branchInfos = new LinkedList<>();
 
-	/**
-	 * The number of master branches on the server that had failed builds.
-	 *
-	 * @return The number of failed projects.
-	 */
-	int getRed();
+	public int getRed() {
+		return red;
+	}
 
-	/**
-	 * The total number of projects that were analyzed and included zn this result.
-	 *
-	 * @return The total number ofg projects.
-	 */
-	int getTotal();
+	public int getYellow() {
+		return yellow;
+	}
 
-	List<JenkinsBranchInfo> getBranchInfos();
+	public int getGreen() {
+		return green;
+	}
+
+	public int getTotal() {
+		return red + yellow + green;
+	}
+
+	public String toString() {
+		return "JenkinsStatus{" +
+				"red=" + red +
+				", yellow=" + yellow +
+				", green=" + green +
+				'}';
+	}
+
+	public void updateStats(String projectName, String color) {
+		updateStats(projectName, "", color);
+	}
+
+	public void updateStats(String projectName, String branchName, String color) {
+		String simplifiedColor = "unknown";
+
+		switch(color) {
+			case "blue":
+			case "blue_anime":
+				green++;
+				simplifiedColor = "green";
+				break;
+			case "yellow":
+			case "yellow_anime":
+				yellow++;
+				simplifiedColor = "yellow";
+				break;
+			case "red":
+			case "red_anime":
+				red++;
+				simplifiedColor = "red";
+			default:
+				// simply ignore the grey and disabled ones
+		}
+
+		branchInfos.add(new JenkinsBranchInfo(projectName, branchName, simplifiedColor));
+	}
+
+	public List<JenkinsBranchInfo> getBranchInfos() {
+		return Collections.unmodifiableList(branchInfos);
+	}
 }
