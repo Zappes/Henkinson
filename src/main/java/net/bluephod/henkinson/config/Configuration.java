@@ -109,6 +109,9 @@ public class Configuration {
 	@JsonProperty
 	private int interval = 1000;
 
+	@JsonProperty
+	private String statusFile;
+
 	/**
 	 * The GPIO pin to which your LED strip is connected.
 	 *
@@ -203,6 +206,10 @@ public class Configuration {
 
 	public int getInterval() {
 		return interval;
+	}
+
+	public String getStatusFile() {
+		return statusFile;
 	}
 
 	public int getGpio() {

@@ -1,13 +1,19 @@
 package net.bluephod.henkinson;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import com.diozero.ws281xj.rpiws281x.WS281x;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.Jenkins;
+import net.bluephod.henkinson.jenkins.JenkinsStatus;
 import net.bluephod.henkinson.jenkins.RemoteJenkins;
 import net.bluephod.henkinson.visualization.BlueSplashStartUpVisualization;
 import net.bluephod.henkinson.visualization.BuildStatusVisualization;
@@ -138,7 +144,7 @@ public class Henkinson implements Runnable {
 		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
 		BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
 
-		visualization.init(canvas, jenkins.retrieveStatus());
+		visualization.init(canvas, persistStatus(jenkins.retrieveStatus()));
 		connectionRetry = 0;
 
 		Logger.info(String.format("Initialization done. Sleeping for %dms before first update occurs.", config.getInterval()));
@@ -148,13 +154,42 @@ public class Henkinson implements Runnable {
 		Logger.info("Starting visualization update loop.");
 
 		while(!isStopRequested()) {
-			visualization.update(jenkins.retrieveStatus());
+			visualization.update(persistStatus(jenkins.retrieveStatus()));
 			connectionRetry = 0;
 
 			// it would be nice to have some kind of event trigger on status change in Jenkins instead of periodically polling the status. maybe
 			// in a future release.
 			sleep(config.getInterval());
 		}
+	}
+
+	/**
+	 * Persists the status and returns the status object.
+	 * <p>
+	 * This could obviously be void, but it makes the code a bit nicer when you can just wrap the method call around the retrieval method...
+	 *
+	 * @param status The status to persist.
+	 *
+	 * @return The status, unchanged.
+	 */
+	private JenkinsStatus persistStatus(JenkinsStatus status) {
+		String statusFileName = config.getStatusFile();
+		if(statusFileName == null || "".equals(statusFileName)) {
+			return status;
+		}
+
+		Path statusFile = Paths.get(statusFileName);
+
+		try(BufferedWriter writer = Files.newBufferedWriter(statusFile)) {
+			ObjectMapper objectMapper = new ObjectMapper();
+			objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+			objectMapper.writeValue(writer, status);
+		}
+		catch(IOException e) {
+			Logger.error(e, "Error when persisting status file.");
+		}
+
+		return status;
 	}
 
 	private boolean isStopRequested() {
