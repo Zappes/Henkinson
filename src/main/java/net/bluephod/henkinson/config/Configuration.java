@@ -101,6 +101,23 @@ public class Configuration {
 	private String loglevel = "WARNING";
 
 	/**
+	 * Controls if the LED strip will be used.
+	 *
+	 * If this is set to false, the thing can run on a normal PC, thus making development of non-strippy features a lot easier.
+	 */
+	@JsonProperty
+	private boolean stripEnabled = true;
+
+	/**
+	 * Controls if the GUI is shown.
+	 *
+	 * Only activate this when you started the tool manually or configured it to be displayed on a TTY, ideally with some kind of display
+	 * attached. It will show a text-based UI with additional status information.
+	 */
+	@JsonProperty
+	private boolean guiEnabled = false;
+
+	/**
 	 * The pause in ms between polling cycles.
 	 * <p>
 	 * If this has the default value of 1000, the status will be polled every second. You should be able to figure out everything else by
@@ -108,9 +125,6 @@ public class Configuration {
 	 */
 	@JsonProperty
 	private int interval = 1000;
-
-	@JsonProperty
-	private String statusFile;
 
 	/**
 	 * The GPIO pin to which your LED strip is connected.
@@ -208,8 +222,12 @@ public class Configuration {
 		return interval;
 	}
 
-	public String getStatusFile() {
-		return statusFile;
+	public boolean isStripEnabled() {
+		return stripEnabled;
+	}
+
+	public boolean isGuiEnabled() {
+		return guiEnabled;
 	}
 
 	public int getGpio() {

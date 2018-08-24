@@ -20,6 +20,7 @@ import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
 
+@Deprecated
 public class StatusDisplay {
 	private static Configuration config;
 	private static FileTime lastStatusUpdate;
@@ -32,7 +33,7 @@ public class StatusDisplay {
 				.level(Level.valueOf(config.getLoglevel()))
 				.activate();
 
-		String statusFileName = config.getStatusFile();
+		String statusFileName = "current_status.json";
 		if(statusFileName == null || "".equals(statusFileName)) {
 			Logger.error("No status file specified in the configuration, exiting.");
 			return;

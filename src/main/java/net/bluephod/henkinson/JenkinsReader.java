@@ -36,7 +36,7 @@ public class JenkinsReader {
 				.activate();
 
 		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
-		JenkinsStatus status = persistStatus(jenkins.retrieveStatus());
+		JenkinsStatus status = jenkins.retrieveStatus();
 
 		System.out.println("\n\n===> Overall Jenkins status: " + status);
 		System.out.println();
@@ -52,34 +52,5 @@ public class JenkinsReader {
 		for(JenkinsBranchInfo info : problematicBranches) {
 			System.out.printf("     [%s] %s (%s)%n", info.getColor(), info.getProjectName(), info.getBranchName());
 		}
-	}
-
-	/**
-	 * Persists the status and returns the status object.
-	 * <p>
-	 * This could obviously be void, but it makes the code a bit nicer when you can just wrap the method call around the retrieval method...
-	 *
-	 * @param status The status to persist.
-	 *
-	 * @return The status, unchanged.
-	 */
-	private static JenkinsStatus persistStatus(JenkinsStatus status) {
-		String statusFileName = config.getStatusFile();
-		if(statusFileName == null || "".equals(statusFileName)) {
-			return status;
-		}
-
-		Path statusFile = Paths.get(statusFileName);
-
-		try(BufferedWriter writer = Files.newBufferedWriter(statusFile)) {
-			ObjectMapper objectMapper = new ObjectMapper();
-			objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-			objectMapper.writeValue(writer, status);
-		}
-		catch(IOException e) {
-			Logger.error(e, "Error when persisting status file.");
-		}
-
-		return status;
 	}
 }

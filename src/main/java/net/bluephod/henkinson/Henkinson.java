@@ -144,7 +144,7 @@ public class Henkinson implements Runnable {
 		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
 		BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
 
-		visualization.init(canvas, persistStatus(jenkins.retrieveStatus()));
+		visualization.init(canvas, jenkins.retrieveStatus());
 		connectionRetry = 0;
 
 		Logger.info(String.format("Initialization done. Sleeping for %dms before first update occurs.", config.getInterval()));
@@ -154,42 +154,13 @@ public class Henkinson implements Runnable {
 		Logger.info("Starting visualization update loop.");
 
 		while(!isStopRequested()) {
-			visualization.update(persistStatus(jenkins.retrieveStatus()));
+			visualization.update(jenkins.retrieveStatus());
 			connectionRetry = 0;
 
 			// it would be nice to have some kind of event trigger on status change in Jenkins instead of periodically polling the status. maybe
 			// in a future release.
 			sleep(config.getInterval());
 		}
-	}
-
-	/**
-	 * Persists the status and returns the status object.
-	 * <p>
-	 * This could obviously be void, but it makes the code a bit nicer when you can just wrap the method call around the retrieval method...
-	 *
-	 * @param status The status to persist.
-	 *
-	 * @return The status, unchanged.
-	 */
-	private JenkinsStatus persistStatus(JenkinsStatus status) {
-		String statusFileName = config.getStatusFile();
-		if(statusFileName == null || "".equals(statusFileName)) {
-			return status;
-		}
-
-		Path statusFile = Paths.get(statusFileName);
-
-		try(BufferedWriter writer = Files.newBufferedWriter(statusFile)) {
-			ObjectMapper objectMapper = new ObjectMapper();
-			objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-			objectMapper.writeValue(writer, status);
-		}
-		catch(IOException e) {
-			Logger.error(e, "Error when persisting status file.");
-		}
-
-		return status;
 	}
 
 	private boolean isStopRequested() {
