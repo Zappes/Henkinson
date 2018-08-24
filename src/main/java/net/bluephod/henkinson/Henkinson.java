@@ -1,17 +1,12 @@
 package net.bluephod.henkinson;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.rpiws281x.WS281x;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.gui.HenkinsonGui;
 import net.bluephod.henkinson.jenkins.Jenkins;
@@ -45,18 +40,15 @@ public class Henkinson implements Runnable {
 		Thread worker = new Thread(henkinson);
 		worker.start();
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				Logger.info("Shutdown hook executing.");
-				henkinson.setStopRequested();
-				worker.interrupt();
-				Logger.info("Waiting for Henkinson to actually stop...");
-				while(!henkinson.isStopExecuted()) {
-					;
-				}
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			Logger.info("Shutdown hook executing.");
+			henkinson.setStopRequested();
+			worker.interrupt();
+			Logger.info("Waiting for Henkinson to actually stop...");
+			while(!henkinson.isStopExecuted()) {
+				;
 			}
-		});
+		}));
 
 		while(true) {
 			// go to sleep here, because we'll consume LOTS of CPU if we don't...
@@ -68,7 +60,7 @@ public class Henkinson implements Runnable {
 		this.stopRequested = true;
 	}
 
-	public boolean isStopExecuted() {
+	private boolean isStopExecuted() {
 		return stopExecuted;
 	}
 
@@ -105,7 +97,7 @@ public class Henkinson implements Runnable {
 					break;
 				}
 			}
-			while(!isStopRequested());
+			while(isRunning());
 		}
 		catch(IOException e) {
 			Logger.error("Exception when closing the canvas:", e);
@@ -138,13 +130,14 @@ public class Henkinson implements Runnable {
 	 * @throws IOException If something goes wrong while reading data from Jenkins.
 	 */
 	private void executeVisualizations(HenkinsonCanvas canvas, HenkinsonGui gui) throws IOException {
+		gui.init();
+
 		new BlueSplashStartUpVisualization().showStartUp(canvas);
 
 		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
-
 		BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
 
-		gui.init();
+		gui.setStatus(String.format("Retrieving data from %s...", config.getJenkinsBaseUrl()));
 
 		JenkinsStatus initialStatus = jenkins.retrieveStatus();
 		gui.update(initialStatus);
@@ -158,7 +151,7 @@ public class Henkinson implements Runnable {
 
 		Logger.info("Starting visualization update loop.");
 
-		while(!isStopRequested()) {
+		while(isRunning()) {
 			JenkinsStatus status = jenkins.retrieveStatus();
 
 			gui.update(status);
@@ -172,8 +165,8 @@ public class Henkinson implements Runnable {
 		}
 	}
 
-	private boolean isStopRequested() {
-		return stopRequested;
+	private boolean isRunning() {
+		return !stopRequested;
 	}
 
 	private LedDriverInterface getLedDriver() {

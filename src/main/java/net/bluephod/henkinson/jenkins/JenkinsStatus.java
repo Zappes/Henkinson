@@ -1,12 +1,11 @@
 package net.bluephod.henkinson.jenkins;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
-@JsonIgnoreProperties(ignoreUnknown=true)
 public final class JenkinsStatus {
 	private int red;
 	private int yellow;
@@ -68,5 +67,14 @@ public final class JenkinsStatus {
 
 	public List<JenkinsBranchInfo> getBranchInfos() {
 		return Collections.unmodifiableList(branchInfos);
+	}
+
+	public List<JenkinsBranchInfo> getBranchesWitchColor(String color) {
+		return Collections.unmodifiableList(
+				branchInfos.stream()
+						.filter(jenkinsBranchInfo -> jenkinsBranchInfo.getColor().equals(color))
+						.sorted(Comparator.comparing(JenkinsBranchInfo::getProjectName))
+						.collect(Collectors.toList())
+		);
 	}
 }
