@@ -8,17 +8,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import com.diozero.ws281xj.LedDriverInterface;
 import com.diozero.ws281xj.rpiws281x.WS281x;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import net.bluephod.henkinson.config.Configuration;
+import net.bluephod.henkinson.gui.HenkinsonGui;
 import net.bluephod.henkinson.jenkins.Jenkins;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
 import net.bluephod.henkinson.jenkins.RemoteJenkins;
-import net.bluephod.henkinson.visualization.BlueSplashStartUpVisualization;
-import net.bluephod.henkinson.visualization.BuildStatusVisualization;
-import net.bluephod.henkinson.visualization.HenkinsonCanvas;
-import net.bluephod.henkinson.visualization.VuMeterBuildStatusVisualization;
+import net.bluephod.henkinson.visualization.*;
 import org.pmw.tinylog.Configurator;
 import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
@@ -74,7 +73,7 @@ public class Henkinson implements Runnable {
 	}
 
 	public void run() {
-		try(HenkinsonCanvas canvas = new HenkinsonCanvas(new WS281x(config.getGpio(), config.getBrightness(), config.getPixels()))) {
+		try(HenkinsonCanvas canvas = new HenkinsonCanvas(getLedDriver()); HenkinsonGui gui = new HenkinsonGui(config)) {
 			Logger.info("LED driver initialized.");
 
 			int startDelay = config.getStartDelay();
@@ -87,7 +86,7 @@ public class Henkinson implements Runnable {
 			do {
 				try {
 					Logger.info("Starting visualizations.");
-					executeVisualizations(canvas);
+					executeVisualizations(canvas, gui);
 					Logger.info("Visualizations ended.");
 				}
 				catch(SocketTimeoutException | UnknownHostException e) {
@@ -138,13 +137,19 @@ public class Henkinson implements Runnable {
 	 *
 	 * @throws IOException If something goes wrong while reading data from Jenkins.
 	 */
-	private void executeVisualizations(final HenkinsonCanvas canvas) throws IOException {
+	private void executeVisualizations(HenkinsonCanvas canvas, HenkinsonGui gui) throws IOException {
 		new BlueSplashStartUpVisualization().showStartUp(canvas);
 
 		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
+
 		BuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
 
-		visualization.init(canvas, jenkins.retrieveStatus());
+		gui.init();
+
+		JenkinsStatus initialStatus = jenkins.retrieveStatus();
+		gui.update(initialStatus);
+		visualization.init(canvas, initialStatus);
+
 		connectionRetry = 0;
 
 		Logger.info(String.format("Initialization done. Sleeping for %dms before first update occurs.", config.getInterval()));
@@ -154,7 +159,11 @@ public class Henkinson implements Runnable {
 		Logger.info("Starting visualization update loop.");
 
 		while(!isStopRequested()) {
-			visualization.update(jenkins.retrieveStatus());
+			JenkinsStatus status = jenkins.retrieveStatus();
+
+			gui.update(status);
+			visualization.update(status);
+
 			connectionRetry = 0;
 
 			// it would be nice to have some kind of event trigger on status change in Jenkins instead of periodically polling the status. maybe
@@ -165,5 +174,14 @@ public class Henkinson implements Runnable {
 
 	private boolean isStopRequested() {
 		return stopRequested;
+	}
+
+	private LedDriverInterface getLedDriver() {
+		if(config.isStripEnabled()) {
+			return new WS281x(config.getGpio(), config.getBrightness(), config.getPixels());
+		}
+		else {
+			return new DummyLedDriver(config.getPixels());
+		}
 	}
 }
