@@ -36,7 +36,7 @@ public class RemoteJenkins implements Jenkins {
 		Logger.debug(String.format("Retrieving stats from %s", jenkinsBaseUrl));
 
 		HttpURLConnection connection = getConnection(jenkinsBaseUrl, "GET");
-		connection.connect();
+		connectConnection(connection);
 
 		Logger.debug("Connected");
 
@@ -59,7 +59,7 @@ public class RemoteJenkins implements Jenkins {
 
 		HttpURLConnection connection;
 		connection = getConnection(projectDescriptor.getApiUrl(), "GET");
-		connection.connect();
+		connectConnection(connection);
 
 		String projectColor = projectDescriptor.getColor();
 		if(projectColor != null) {
@@ -112,9 +112,28 @@ public class RemoteJenkins implements Jenkins {
 		return connection;
 	}
 
-	private void authenticateConnection(final URLConnection connection) {
+	private void authenticateConnection(URLConnection connection) {
 		String encoded =
 				Base64.getEncoder().encodeToString((config.getUsername() + ":" + config.getPassword()).getBytes(StandardCharsets.UTF_8));
 		connection.setRequestProperty("Authorization", "Basic " + encoded);
+	}
+
+	private void connectConnection(URLConnection connection) throws IOException {
+		int retries = 0;
+
+		while(retries < config.getConnectionRetries()) {
+			try {
+				connection.connect();
+				break;
+			}
+			catch(IOException e) {
+				retries++;
+				Logger.info(
+						String.format("Connection attempt %d failed, waiting %dms before retrying...", retries, config.getConnectionRetryDelay()));
+			}
+
+			Logger.error("Exceeded maximum number of connection retries, failing.");
+			throw new IOException("Connection retries exceeded.");
+		}
 	}
 }

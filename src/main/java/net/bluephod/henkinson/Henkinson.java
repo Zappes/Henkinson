@@ -13,7 +13,6 @@ import org.pmw.tinylog.Logger;
 
 public class Henkinson {
 	private final Configuration config;
-	private int connectionRetry = 0;
 
 	public Henkinson() throws IOException {
 		config = Configuration.getInstance();
@@ -69,12 +68,12 @@ public class Henkinson {
 				}
 			}).start();
 
-			while(true) {
-				if(gui != null) {
-					gui.waitForKeypress();
-					return 0;
-				}
-				else {
+			if(gui != null) {
+				gui.waitForKeypress();
+				return 0;
+			}
+			else {
+				while(true) {
 					HenkinsonUtil.sleep(1000);
 				}
 			}
