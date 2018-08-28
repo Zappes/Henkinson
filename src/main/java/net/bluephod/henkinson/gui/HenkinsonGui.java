@@ -9,9 +9,11 @@ import java.util.List;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
+import net.bluephod.henkinson.Henkinson;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.JenkinsBranchInfo;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
+import org.pmw.tinylog.Logger;
 
 public final class HenkinsonGui implements Closeable {
 	private Configuration config;
@@ -20,21 +22,16 @@ public final class HenkinsonGui implements Closeable {
 	private TerminalDimensions dimensions;
 	private JenkinsStatus currentJenkinsStatus;
 	private Date lastUpdateTime;
+	private Henkinson henkinson;
 
-	public HenkinsonGui(Configuration config) throws IOException {
+	public HenkinsonGui(Configuration config, Henkinson henkinson) throws IOException {
 		this.config = config;
-
-		if(config.isGuiEnabled()) {
-			terminal = new DefaultTerminalFactory().createTerminal();
-			graphics = terminal.newTextGraphics();
-		}
+		this.henkinson = henkinson;
+		this.terminal = new DefaultTerminalFactory().createTerminal();
+		this.graphics = terminal.newTextGraphics();
 	}
 
 	public void init() throws IOException {
-		if(!config.isGuiEnabled()) {
-			return;
-		}
-
 		terminal.enterPrivateMode();
 		terminal.clearScreen();
 		terminal.setCursorVisible(false);
@@ -60,20 +57,25 @@ public final class HenkinsonGui implements Closeable {
 		});
 	}
 
-	public void setStatus(String status) throws IOException {
-		if(!config.isGuiEnabled()) {
-			return;
+	public void waitForKeypress() {
+		if(terminal == null) {
+			throw new IllegalStateException("Tried to wait for keypress without an initialized terminal.");
 		}
 
+		try {
+			terminal.readInput();
+		}
+		catch(IOException e) {
+			Logger.warn("IO Exception while waiting for keypress");
+		}
+	}
+
+	public void setStatus(String status) throws IOException {
 		drawStatusBar(status);
 		terminal.flush();
 	}
 
 	public void update(JenkinsStatus status) throws IOException {
-		if(!config.isGuiEnabled()) {
-			return;
-		}
-
 		if(status != null) {
 			currentJenkinsStatus = status;
 			lastUpdateTime = new Date();
@@ -107,11 +109,12 @@ public final class HenkinsonGui implements Closeable {
 	}
 
 	public void close() throws IOException {
-		if(!config.isGuiEnabled()) {
-			return;
-		}
+		Logger.debug("Shutting down Henkinson GUI.");
 
-		terminal.close();
+		if(terminal != null) {
+			terminal.exitPrivateMode();
+			terminal.close();
+		}
 	}
 
 	private void showProjects(List<JenkinsBranchInfo> branches, int column, int width, ColorSetting colors) {

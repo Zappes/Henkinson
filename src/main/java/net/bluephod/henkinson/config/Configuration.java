@@ -11,7 +11,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.pmw.tinylog.Configurator;
+import org.pmw.tinylog.Level;
 import org.pmw.tinylog.Logger;
+import org.pmw.tinylog.writers.FileWriter;
 
 /**
  * Configuration class for Henkinson.
@@ -100,6 +103,9 @@ public class Configuration {
 	@JsonProperty
 	private String loglevel = "WARNING";
 
+	@JsonProperty
+	private String logfile = "./henkinson.log";
+
 	/**
 	 * Controls if the LED strip will be used.
 	 *
@@ -174,6 +180,12 @@ public class Configuration {
 					Logger.info(String.format("Reading configuration from file %s", configPath));
 
 					instance = new ObjectMapper().readValue(in, Configuration.class);
+
+					Configurator.currentConfig()
+							.level(Level.valueOf(instance.getLoglevel()))
+							.writer(new FileWriter(instance.getLogfile()))
+							.activate();
+
 					return instance;
 				}
 			}
@@ -216,6 +228,10 @@ public class Configuration {
 
 	public String getLoglevel() {
 		return loglevel;
+	}
+
+	public String getLogfile() {
+		return logfile;
 	}
 
 	public int getInterval() {

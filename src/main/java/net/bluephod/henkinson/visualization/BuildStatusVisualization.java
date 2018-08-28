@@ -1,5 +1,9 @@
 package net.bluephod.henkinson.visualization;
 
+import java.io.Closeable;
+
+import net.bluephod.henkinson.Henkinson;
+import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
 
 /**
@@ -12,19 +16,8 @@ import net.bluephod.henkinson.jenkins.JenkinsStatus;
  * (Hint: Creating new visualizations would be the part of the software for which contributions by other people would be the most
  * appreciated.)
  */
-public interface BuildStatusVisualization {
-	/**
-	 * Initializes the visualization.
-	 * <p>
-	 * When this method is called, the visualization receivers a LED driver instance and the initial status to be displayed. The
-	 * visualization may assume that some starting animation from that state to the visualization of the initial status should be shown.
-	 * The current state of the strip is whatever the last visualization showed, so take care to create some nice transition here.
-	 * <p>
-	 * This method may only be called again if the shutdown method was called before.
-	 *  @param canvas The LED driver to be used for visualization.
-	 * @param initialStatus The status to be shown initially.
-	 */
-	void init(HenkinsonCanvas canvas, JenkinsStatus initialStatus);
+public interface BuildStatusVisualization extends Closeable {
+	void init(Configuration config, Henkinson henkinson);
 
 	/**
 	 * Updates the status to be shown.

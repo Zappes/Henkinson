@@ -23,18 +23,16 @@ import org.pmw.tinylog.Logger;
  * versions.
  */
 public class RemoteJenkins implements Jenkins {
-	private String jenkinsBaseUrl;
-	private String username;
-	private String password;
+	private Configuration config;
 
-	public RemoteJenkins(final String jenkinsBaseUrl, final String username, final String password) {
-		this.jenkinsBaseUrl = jenkinsBaseUrl;
-		this.username = username;
-		this.password = password;
+	public RemoteJenkins(Configuration config) {
+		this.config = config;
 	}
 
 	@Override
 	public JenkinsStatus retrieveStatus() throws IOException {
+		String jenkinsBaseUrl = config.getJenkinsBaseUrl();
+
 		Logger.debug(String.format("Retrieving stats from %s", jenkinsBaseUrl));
 
 		HttpURLConnection connection = getConnection(jenkinsBaseUrl, "GET");
@@ -115,8 +113,8 @@ public class RemoteJenkins implements Jenkins {
 	}
 
 	private void authenticateConnection(final URLConnection connection) {
-		String encoded = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+		String encoded =
+				Base64.getEncoder().encodeToString((config.getUsername() + ":" + config.getPassword()).getBytes(StandardCharsets.UTF_8));
 		connection.setRequestProperty("Authorization", "Basic " + encoded);
 	}
-
 }

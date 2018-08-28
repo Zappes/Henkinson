@@ -27,7 +27,7 @@ public class JenkinsReader {
 				.level(Level.valueOf(config.getLoglevel()))
 				.activate();
 
-		Jenkins jenkins = new RemoteJenkins(config.getJenkinsBaseUrl(), config.getUsername(), config.getPassword());
+		Jenkins jenkins = new RemoteJenkins(config);
 		JenkinsStatus status = jenkins.retrieveStatus();
 
 		System.out.println("\n\n===> Overall Jenkins status: " + status);

@@ -1,8 +1,13 @@
 package net.bluephod.henkinson.visualization;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import com.diozero.ws281xj.PixelColour;
+import com.diozero.ws281xj.rpiws281x.WS281x;
+import net.bluephod.henkinson.Henkinson;
+import net.bluephod.henkinson.HenkinsonUtil;
+import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.JenkinsStatus;
 import org.pmw.tinylog.Logger;
 
@@ -22,37 +27,39 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	private static final int COLOR_YELLOW = PixelColour.createColourRGB(255, 255, 0);
 	private static final int COLOR_RED = PixelColour.createColourRGB(255, 0, 0);
 
+	private Configuration config;
+	private Henkinson henkinson;
+
 	private HenkinsonCanvas canvas;
 	private StatusLedDistribution currentDist;
 
 	@Override
-	public void init(final HenkinsonCanvas canvas, final JenkinsStatus initialStatus) {
-		if(canvas == null) {
-			throw new IllegalArgumentException("Driver may not be null");
-		}
+	public void init(Configuration config, Henkinson henkinson) {
+		this.config = config;
+		this.henkinson = henkinson;
+		this.currentDist = null;
 
-		this.canvas = canvas;
-		this.currentDist = getDistribution(initialStatus);
-
-		fadeToDistribution(currentDist);
+		canvas = new HenkinsonCanvas(new WS281x(config.getGpio(), config.getBrightness(), config.getPixels()));
 	}
 
 	@Override
 	public void update(JenkinsStatus status) {
 		StatusLedDistribution target = getDistribution(status);
 
-		while(!currentDist.equals(target)) {
-			currentDist = morphTo(currentDist, target);
+		if(currentDist == null) {
+			// just fade to the distribution on the first update.
+			currentDist = getDistribution(status);
+			fadeToDistribution(currentDist);
+		}
+		else {
+			while(!currentDist.equals(target)) {
+				currentDist = morphTo(currentDist, target);
 
-			Logger.trace("Morphing dist. Current is " + currentDist);
+				Logger.trace("Morphing dist. Current is " + currentDist);
 
-			renderDistribution(currentDist);
+				renderDistribution(currentDist);
 
-			try {
-				Thread.sleep(DELAY_MORPH);
-			}
-			catch(InterruptedException e) {
-				Thread.currentThread().interrupt();
+				HenkinsonUtil.sleep(DELAY_MORPH);
 			}
 		}
 	}
@@ -145,12 +152,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 
 			canvas.render();
 
-			try {
-				Thread.sleep(DELAY_PIXEL_FADE);
-			}
-			catch(InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
+			HenkinsonUtil.sleep(DELAY_PIXEL_FADE);
 		}
 		while(changeHasOccurred);
 	}
@@ -207,6 +209,13 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		return current > target ? Math.max(current - SPEED_PIXEL_FADE, target) : Math.min(current + SPEED_PIXEL_FADE, target);
 	}
 
+	@Override
+	public void close() throws IOException {
+		if(canvas != null) {
+			canvas.close();
+		}
+	}
+
 	private static class StatusLedDistribution {
 		private int green;
 		private int yellow;
@@ -249,17 +258,17 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 			}
 			StatusLedDistribution that = (StatusLedDistribution) o;
 			return green == that.green &&
-				yellow == that.yellow &&
-				red == that.red;
+					yellow == that.yellow &&
+					red == that.red;
 		}
 
 		@Override
 		public String toString() {
 			return "StatusLedDistribution{" +
-				"green=" + green +
-				", yellow=" + yellow +
-				", red=" + red +
-				'}';
+					"green=" + green +
+					", yellow=" + yellow +
+					", red=" + red +
+					'}';
 		}
 	}
 }
