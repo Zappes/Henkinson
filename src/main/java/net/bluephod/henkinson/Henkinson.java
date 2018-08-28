@@ -1,6 +1,7 @@
 package net.bluephod.henkinson;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bluephod.henkinson.config.Configuration;
@@ -20,6 +21,10 @@ public class Henkinson {
 	}
 
 	public static void main(String[] args) throws Exception {
+		String processName = ManagementFactory.getRuntimeMXBean().getName();
+
+		Logger.info(String.format("Started new Henkinson process %s", processName));
+
 		System.exit(new Henkinson().monitorJenkins());
 	}
 
