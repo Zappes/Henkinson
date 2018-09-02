@@ -3,6 +3,7 @@ package net.bluephod.henkinson;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
+import com.diozero.devices.LED;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.gui.HenkinsonGui;
@@ -14,6 +15,7 @@ import org.pmw.tinylog.Logger;
 
 public class Henkinson {
 	private final Configuration config;
+	private static boolean notInterrupted = true;
 
 	public Henkinson() throws IOException {
 		config = Configuration.getInstance();
@@ -24,6 +26,12 @@ public class Henkinson {
 		String processName = ManagementFactory.getRuntimeMXBean().getName();
 
 		Logger.info(String.format("Started new Henkinson process %s", processName));
+
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			Logger.info("Shutdown requested by runtime.");
+			notInterrupted = false;
+		}));
+
 
 		System.exit(new Henkinson().monitorJenkins());
 	}
@@ -36,6 +44,7 @@ public class Henkinson {
 
 		HenkinsonGui gui = null;
 		VuMeterBuildStatusVisualization visualization = null;
+		LED led = null;
 
 		try {
 			if(config.isGuiEnabled()) {
@@ -48,6 +57,10 @@ public class Henkinson {
 				visualization.init(config, this);
 			}
 
+			if(config.isLedEnabled()) {
+				led = new LED(23);
+			}
+
 			Jenkins jenkins = new RemoteJenkins(config);
 
 			// start the UI update thread.
@@ -55,6 +68,8 @@ public class Henkinson {
 			VuMeterBuildStatusVisualization finalVisualization = visualization;
 			new Thread(() -> {
 				try {
+					Logger.info("Started Jenkins update thread.");
+
 					while(true) {
 						JenkinsStatus status = jenkins.retrieveStatus();
 						if(finalGui != null) {
@@ -73,12 +88,29 @@ public class Henkinson {
 				}
 			}).start();
 
+			LED finalLed = led;
+			new Thread(() -> {
+				Logger.info("Started LED blinker thread.");
+
+				try {
+					while(true) {
+						finalLed.on();
+						Thread.sleep(500);
+						finalLed.off();
+						Thread.sleep(500);
+					}
+				}
+				catch(InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			}).start();
+
 			if(gui != null) {
 				gui.waitForKeypress();
 				return 0;
 			}
 			else {
-				while(true) {
+				while(notInterrupted) {
 					HenkinsonUtil.sleep(1000);
 				}
 			}
@@ -95,6 +127,13 @@ public class Henkinson {
 			if(visualization != null) {
 				visualization.close();
 			}
+
+			if(led != null) {
+				led.close();
+			}
 		}
+
+		return 0;
+
 	}
 }

@@ -26,7 +26,10 @@
 		<!-- https://mvnrepository.com/artifact/com.diozero/diozero-provider-wiringpi -->
 		<dependency>
 			<groupId>com.diozero</groupId>
-			<artifactId>diozero-provider-pigpio</artifactId>
+			<artifactId>diozero-provider-mmap</artifactId>
+			<!--<artifactId>diozero-provider-pi4j</artifactId>-->
+			<!--<artifactId>diozero-provider-wiringpi</artifactId>-->
+			<!--<artifactId>diozero-provider-pigpio</artifactId>-->
 			<version>${diozero.version}</version>
 		</dependency>
 

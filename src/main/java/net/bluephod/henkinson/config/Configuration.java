@@ -123,6 +123,8 @@ public class Configuration {
 	@JsonProperty
 	private boolean guiEnabled = false;
 
+	@JsonProperty boolean ledEnabled = true;
+
 	/**
 	 * The pause in ms between polling cycles.
 	 * <p>
@@ -244,6 +246,10 @@ public class Configuration {
 
 	public boolean isGuiEnabled() {
 		return guiEnabled;
+	}
+
+	public boolean isLedEnabled() {
+		return ledEnabled;
 	}
 
 	public int getGpio() {
