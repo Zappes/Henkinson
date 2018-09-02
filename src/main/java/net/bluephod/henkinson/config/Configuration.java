@@ -123,7 +123,22 @@ public class Configuration {
 	@JsonProperty
 	private boolean guiEnabled = false;
 
+	/**
+	 * If this is true, a blinker will be activated on the ledGpio pin.
+	 * <p>
+	 * Make sure to add a current limiting resistor between the GPIO and the LED. 50-100 ohms should be fine.
+	 */
 	@JsonProperty boolean ledEnabled = true;
+
+	/**
+	 * The GPIO pin on which the LED blinker will be active.
+	 */
+	@JsonProperty int ledGpio = 23;
+
+	/**
+	 * The on- and off-time of the LED blinker in ms.
+	 */
+	@JsonProperty int ledInterval = 1000;
 
 	/**
 	 * The pause in ms between polling cycles.
@@ -132,7 +147,7 @@ public class Configuration {
 	 * yourself.
 	 */
 	@JsonProperty
-	private int interval = 1000;
+	private int pollingInterval = 1000;
 
 	/**
 	 * The GPIO pin to which your LED strip is connected.
@@ -141,7 +156,7 @@ public class Configuration {
 	 * I don't own one, so I don't know and also don't care.
 	 */
 	@JsonProperty
-	private int gpio = 18;
+	private int stripGpio = 18;
 
 	/**
 	 * The brightness of the strip in a range of 0-255 with 0 being rather useless.
@@ -236,8 +251,8 @@ public class Configuration {
 		return logfile;
 	}
 
-	public int getInterval() {
-		return interval;
+	public int getPollingInterval() {
+		return pollingInterval;
 	}
 
 	public boolean isStripEnabled() {
@@ -252,8 +267,8 @@ public class Configuration {
 		return ledEnabled;
 	}
 
-	public int getGpio() {
-		return gpio;
+	public int getStripGpio() {
+		return stripGpio;
 	}
 
 	public int getBrightness() {
@@ -262,5 +277,13 @@ public class Configuration {
 
 	public int getPixels() {
 		return pixels;
+	}
+
+	public int getLedGpio() {
+		return ledGpio;
+	}
+
+	public int getLedInterval() {
+		return ledInterval;
 	}
 }

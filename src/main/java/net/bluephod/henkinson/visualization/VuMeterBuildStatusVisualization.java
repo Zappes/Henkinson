@@ -39,7 +39,7 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 		this.henkinson = henkinson;
 		this.currentDist = null;
 
-		canvas = new HenkinsonCanvas(new WS281x(config.getGpio(), config.getBrightness(), config.getPixels()));
+		canvas = new HenkinsonCanvas(new WS281x(config.getStripGpio(), config.getBrightness(), config.getPixels()));
 	}
 
 	@Override

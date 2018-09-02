@@ -48,62 +48,18 @@ public class Henkinson {
 
 		try {
 			if(config.isGuiEnabled()) {
-				gui = new HenkinsonGui(config, this);
-				gui.init();
+				gui = startGui();
 			}
 
 			if(config.isStripEnabled()) {
-				visualization = new VuMeterBuildStatusVisualization();
-				visualization.init(config, this);
+				visualization = startVisualization();
 			}
 
 			if(config.isLedEnabled()) {
-				led = new LED(23);
+				led = startBlinker();
 			}
 
-			Jenkins jenkins = new RemoteJenkins(config);
-
-			// start the UI update thread.
-			HenkinsonGui finalGui = gui;
-			VuMeterBuildStatusVisualization finalVisualization = visualization;
-			new Thread(() -> {
-				try {
-					Logger.info("Started Jenkins update thread.");
-
-					while(true) {
-						JenkinsStatus status = jenkins.retrieveStatus();
-						if(finalGui != null) {
-							finalGui.update(status);
-						}
-
-						if(finalVisualization != null) {
-							finalVisualization.update(status);
-						}
-
-						HenkinsonUtil.sleep(config.getInterval());
-					}
-				}
-				catch(IOException e) {
-					throw new IllegalStateException("Could not update Jenkins status", e);
-				}
-			}).start();
-
-			LED finalLed = led;
-			new Thread(() -> {
-				Logger.info("Started LED blinker thread.");
-
-				try {
-					while(true) {
-						finalLed.on();
-						Thread.sleep(500);
-						finalLed.off();
-						Thread.sleep(500);
-					}
-				}
-				catch(InterruptedException e) {
-					Thread.currentThread().interrupt();
-				}
-			}).start();
+			startUpdateThread(gui, visualization);
 
 			if(gui != null) {
 				gui.waitForKeypress();
@@ -135,5 +91,75 @@ public class Henkinson {
 
 		return 0;
 
+	}
+
+	private HenkinsonGui startGui() {
+		HenkinsonGui gui = new HenkinsonGui(config, this);
+		gui.init();
+
+		Logger.info("GUI initialized");
+
+		return gui;
+	}
+
+	private VuMeterBuildStatusVisualization startVisualization() {
+		VuMeterBuildStatusVisualization visualization = new VuMeterBuildStatusVisualization();
+		visualization.init(config, this);
+
+		Logger.info("Visualization initialized");
+
+		return visualization;
+	}
+
+	private LED startBlinker() {
+		final LED finalLed = new LED(config.getLedGpio());
+		final int ledInterval = config.getLedInterval();
+
+		new Thread(() -> {
+			Logger.info("Started LED blinker thread.");
+
+			try {
+				while(true) {
+					finalLed.on();
+					Thread.sleep(ledInterval);
+					finalLed.off();
+					Thread.sleep(ledInterval);
+				}
+			}
+			catch(InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}).start();
+
+		return finalLed;
+	}
+
+	private void startUpdateThread(final HenkinsonGui gui, final VuMeterBuildStatusVisualization visualization) {
+		Jenkins jenkins = new RemoteJenkins(config);
+
+		// start the UI update thread.
+		HenkinsonGui finalGui = gui;
+		VuMeterBuildStatusVisualization finalVisualization = visualization;
+		new Thread(() -> {
+			try {
+				Logger.info("Started Jenkins update thread.");
+
+				while(true) {
+					JenkinsStatus status = jenkins.retrieveStatus();
+					if(finalGui != null) {
+						finalGui.update(status);
+					}
+
+					if(finalVisualization != null) {
+						finalVisualization.update(status);
+					}
+
+					HenkinsonUtil.sleep(config.getPollingInterval());
+				}
+			}
+			catch(IOException e) {
+				throw new IllegalStateException("Could not update Jenkins status", e);
+			}
+		}).start();
 	}
 }
