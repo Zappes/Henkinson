@@ -93,7 +93,7 @@ public class Henkinson {
 
 	}
 
-	private HenkinsonGui startGui() {
+	private HenkinsonGui startGui() throws IOException {
 		HenkinsonGui gui = new HenkinsonGui(config, this);
 		gui.init();
 
