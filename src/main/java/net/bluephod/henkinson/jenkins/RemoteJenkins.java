@@ -9,6 +9,7 @@ import java.util.Base64;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.bluephod.henkinson.HenkinsonUtil;
 import net.bluephod.henkinson.config.Configuration;
 import net.bluephod.henkinson.jenkins.model.JenkinsApiRoot;
 import net.bluephod.henkinson.jenkins.model.JenkinsBranchDescriptor;
@@ -120,20 +121,22 @@ public class RemoteJenkins implements Jenkins {
 
 	private void connectConnection(URLConnection connection) throws IOException {
 		int retries = 0;
+		int connectionRetryDelay = config.getConnectionRetryDelay();
 
 		while(retries < config.getConnectionRetries()) {
 			try {
 				connection.connect();
-				break;
+				return;
 			}
 			catch(IOException e) {
 				retries++;
 				Logger.info(
-						String.format("Connection attempt %d failed, waiting %dms before retrying...", retries, config.getConnectionRetryDelay()));
+					String.format("Connection attempt %d failed, waiting %dms before retrying...", retries, connectionRetryDelay));
+				HenkinsonUtil.sleep(connectionRetryDelay);
 			}
-
-			Logger.error("Exceeded maximum number of connection retries, failing.");
-			throw new IOException("Connection retries exceeded.");
 		}
+
+		Logger.error("Exceeded maximum number of connection retries, failing.");
+		throw new IOException("Connection retries exceeded.");
 	}
 }
