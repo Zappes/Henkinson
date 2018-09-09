@@ -45,8 +45,18 @@ public class Henkinson {
 		HenkinsonGui gui = null;
 		VuMeterBuildStatusVisualization visualization = null;
 		LED led = null;
+		BuzzerMorser morser = null;
 
 		try {
+			if(config.isBuzzerEnabled()) {
+				morser = new BuzzerMorser(config);
+				morser.buzzMorse("henkinson");
+			}
+
+			if(config.isLedEnabled()) {
+				led = startBlinker();
+			}
+
 			if(config.isGuiEnabled()) {
 				gui = startGui();
 			}
@@ -55,11 +65,7 @@ public class Henkinson {
 				visualization = startVisualization();
 			}
 
-			if(config.isLedEnabled()) {
-				led = startBlinker();
-			}
-
-			startUpdateThread(gui, visualization);
+			startUpdateThread(gui, visualization, morser);
 
 			if(gui != null) {
 				gui.waitForKeypress();
@@ -134,7 +140,7 @@ public class Henkinson {
 		return finalLed;
 	}
 
-	private void startUpdateThread(final HenkinsonGui gui, final VuMeterBuildStatusVisualization visualization) {
+	private void startUpdateThread(final HenkinsonGui gui, final VuMeterBuildStatusVisualization visualization, final BuzzerMorser morser) {
 		Jenkins jenkins = new RemoteJenkins(config);
 
 		// start the UI update thread.
@@ -143,9 +149,16 @@ public class Henkinson {
 		new Thread(() -> {
 			try {
 				Logger.info("Started Jenkins update thread.");
-
+				JenkinsStatus oldStatus = null;
 				while(true) {
 					JenkinsStatus status = jenkins.retrieveStatus();
+
+					if(status.isWorseThan(oldStatus)) {
+						morser.buzzMorse("fuck");
+					}
+
+					oldStatus = status;
+
 					if(finalGui != null) {
 						finalGui.update(status);
 					}

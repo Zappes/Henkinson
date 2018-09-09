@@ -158,9 +158,15 @@ public class Configuration {
 	@JsonProperty
 	private int stripGpio = 18;
 
+	/**
+	 * GPIO pin for the buzzer.
+	 */
 	@JsonProperty
-	private int buzzerGpio = 20;
+	private int buzzerGpio = 12;
 
+	/**
+	 * If enabled, the Henkinson can be quite noisy.
+	 */
 	@JsonProperty
 	private boolean buzzerEnabled = true;
 

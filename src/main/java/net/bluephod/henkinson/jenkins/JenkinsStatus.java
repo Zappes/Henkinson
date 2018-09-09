@@ -58,6 +58,7 @@ public final class JenkinsStatus {
 			case "red_anime":
 				red++;
 				simplifiedColor = "red";
+				break;
 			default:
 				// simply ignore the grey and disabled ones
 		}
@@ -76,5 +77,13 @@ public final class JenkinsStatus {
 						.sorted(Comparator.comparing(JenkinsBranchInfo::getProjectName))
 						.collect(Collectors.toList())
 		);
+	}
+
+	public boolean isWorseThan(JenkinsStatus other) {
+		if(other == null) {
+			return false;
+		}
+
+		return getRed() > other.getRed() || (getRed() == other.getRed() && getYellow() > other.getYellow());
 	}
 }
