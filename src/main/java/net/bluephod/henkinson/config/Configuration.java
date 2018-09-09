@@ -165,6 +165,14 @@ public class Configuration {
 	private int buzzerGpio = 12;
 
 	/**
+	 * Number of ms that a morse dot is long.
+	 * <p>
+	 * A dash will always be thrice as long as the dot.
+	 */
+	@JsonProperty
+	private int buzzerDitDuration = 70;
+
+	/**
 	 * If enabled, the Henkinson can be quite noisy.
 	 */
 	@JsonProperty
@@ -305,5 +313,9 @@ public class Configuration {
 
 	public boolean isBuzzerEnabled() {
 		return buzzerEnabled;
+	}
+
+	public int getBuzzerDitDuration() {
+		return buzzerDitDuration;
 	}
 }

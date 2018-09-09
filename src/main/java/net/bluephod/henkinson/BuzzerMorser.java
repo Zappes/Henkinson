@@ -13,7 +13,6 @@ public class BuzzerMorser {
 		"...", "-", "..-", "...-", ".--", "-..-",
 		"-.--", "--.."};
 	private Configuration config;
-	private int ditDuration = 50;
 
 	public BuzzerMorser(final Configuration config) {
 		this.config = config;
@@ -49,18 +48,18 @@ public class BuzzerMorser {
 	}
 
 	private void buzzPause() {
-		HenkinsonUtil.sleep(ditDuration);
+		HenkinsonUtil.sleep(config.getBuzzerDitDuration());
 	}
 
 	private void buzzDit(final DigitalOutputDevice buzzer) {
 		buzzer.on();
-		HenkinsonUtil.sleep(ditDuration);
+		HenkinsonUtil.sleep(config.getBuzzerDitDuration());
 		buzzer.off();
 	}
 
 	private void buzzDah(final DigitalOutputDevice buzzer) {
 		buzzer.on();
-		HenkinsonUtil.sleep(ditDuration * 3);
+		HenkinsonUtil.sleep(config.getBuzzerDitDuration() * 3);
 		buzzer.off();
 	}
 }
