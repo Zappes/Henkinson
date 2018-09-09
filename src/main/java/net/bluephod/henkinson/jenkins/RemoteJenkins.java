@@ -52,6 +52,8 @@ public class RemoteJenkins implements Jenkins {
 			processProject(projectDescriptor, mapper, colors);
 		}
 
+		Logger.info("Successfully retrieved Jenkins status.");
+
 		return colors;
 	}
 

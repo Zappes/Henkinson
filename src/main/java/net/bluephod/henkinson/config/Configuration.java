@@ -158,6 +158,12 @@ public class Configuration {
 	@JsonProperty
 	private int stripGpio = 18;
 
+	@JsonProperty
+	private int buzzerGpio = 20;
+
+	@JsonProperty
+	private boolean buzzerEnabled = true;
+
 	/**
 	 * The brightness of the strip in a range of 0-255 with 0 being rather useless.
 	 *
@@ -285,5 +291,13 @@ public class Configuration {
 
 	public int getLedInterval() {
 		return ledInterval;
+	}
+
+	public int getBuzzerGpio() {
+		return buzzerGpio;
+	}
+
+	public boolean isBuzzerEnabled() {
+		return buzzerEnabled;
 	}
 }
