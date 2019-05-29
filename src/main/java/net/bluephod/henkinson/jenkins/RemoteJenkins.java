@@ -1,6 +1,7 @@
 package net.bluephod.henkinson.jenkins;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
@@ -75,7 +76,7 @@ public class RemoteJenkins implements Jenkins {
 			return;
 		}
 
-		JenkinsProject project = mapper.readValue(connection.getInputStream(), JenkinsProject.class);
+		JenkinsProject project = mapper.readValue(getConnectionStream(connection), JenkinsProject.class);
 		String projectName = project.getName();
 		Logger.debug(String.format("Checking branches for multi-branch project '%s'", projectName));
 
@@ -140,5 +141,25 @@ public class RemoteJenkins implements Jenkins {
 
 		Logger.error("Exceeded maximum number of connection retries, failing.");
 		throw new IOException("Connection retries exceeded.");
+	}
+
+	private InputStream getConnectionStream(URLConnection connection) throws IOException {
+		int retries = 0;
+		int connectionRetryDelay = config.getConnectionRetryDelay();
+
+		while(retries < config.getConnectionRetries()) {
+			try {
+				return connection.getInputStream();
+			}
+			catch(IOException e) {
+				retries++;
+				Logger.info(
+						String.format("Connection stream retrieval attempt %d failed, waiting %dms before retrying...", retries, connectionRetryDelay));
+				HenkinsonUtil.sleep(connectionRetryDelay);
+			}
+		}
+
+		Logger.error("Exceeded maximum number of connection stream retrieval retries, failing.");
+		throw new IOException("Connection stream retrieval retries exceeded.");
 	}
 }
