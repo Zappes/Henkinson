@@ -67,26 +67,20 @@ public class VuMeterBuildStatusVisualization implements BuildStatusVisualization
 	private StatusLedDistribution getDistribution(JenkinsStatus status) {
 		double ledsPerCount = ((double) canvas.getNumberOfColumns()) / ((double) status.getTotal());
 
-		int green = (int) Math.floor(ledsPerCount * status.getGreen());
 		int yellow = (int) Math.floor(ledsPerCount * status.getYellow());
 		int red = (int) Math.floor(ledsPerCount * status.getRed());
 
-		int off = canvas.getNumberOfColumns() - (green + red + yellow);
-
-		while(off > 0) {
-			if(green != 0) {
-				green++;
-				off--;
-			}
-			else if(yellow != 0) {
-				yellow++;
-				off--;
-			}
-			else if(red != 0) {
-				red++;
-				off--;
-			}
+		// make sure that at least one yellow and one red is shown if red/yellow builds are > 0
+		if(status.getYellow() > 0 && yellow == 0) {
+			yellow = 1;
 		}
+
+		if(status.getRed() > 0 && red == 0) {
+			red = 1;
+		}
+
+		// make the rest green
+		int green = canvas.getNumberOfColumns() - (red + yellow);
 
 		return new StatusLedDistribution(green, yellow, red);
 	}

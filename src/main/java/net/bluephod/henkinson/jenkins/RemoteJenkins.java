@@ -37,13 +37,15 @@ public class RemoteJenkins implements Jenkins {
 
 		Logger.debug(String.format("Retrieving stats from %s", jenkinsBaseUrl));
 
-		HttpURLConnection connection = getConnection(jenkinsBaseUrl, "GET");
-		connectConnection(connection);
-
-		Logger.debug("Connected");
-
+		JenkinsApiRoot root = null;
 		ObjectMapper mapper = new ObjectMapper();
-		JenkinsApiRoot root = mapper.readValue(connection.getInputStream(), JenkinsApiRoot.class);
+
+		try(InputStream in = getStreamForUrl(jenkinsBaseUrl)) {
+			root = mapper.readValue(in, JenkinsApiRoot.class);
+		}
+		catch(IOException e) {
+			System.exit(-1);
+		}
 
 		Logger.debug(String.format("Found %d projects", root.getProjects().size()));
 
@@ -61,10 +63,6 @@ public class RemoteJenkins implements Jenkins {
 	private void processProject(final JenkinsProjectDescriptor projectDescriptor, final ObjectMapper mapper,
 			final JenkinsStatus colors) throws IOException {
 
-		HttpURLConnection connection;
-		connection = getConnection(projectDescriptor.getApiUrl(), "GET");
-		connectConnection(connection);
-
 		String projectColor = projectDescriptor.getColor();
 		if(projectColor != null) {
 			// a color is only set for single-branch projects. if there is one, we can skip all the branch stuff and simply count the project
@@ -76,7 +74,15 @@ public class RemoteJenkins implements Jenkins {
 			return;
 		}
 
-		JenkinsProject project = mapper.readValue(getConnectionStream(connection), JenkinsProject.class);
+		JenkinsProject project = null;
+
+		try(InputStream in = getStreamForUrl(projectDescriptor.getApiUrl())) {
+			project = mapper.readValue(in, JenkinsProject.class);
+		}
+		catch(IOException e) {
+			System.exit(-1);
+		}
+
 		String projectName = project.getName();
 		Logger.debug(String.format("Checking branches for multi-branch project '%s'", projectName));
 
@@ -106,49 +112,26 @@ public class RemoteJenkins implements Jenkins {
 		}
 	}
 
-	private HttpURLConnection getConnection(final String urlString, final String method) throws IOException {
-		URL url = new URL(urlString);
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod(method);
-		connection.setReadTimeout(15 * 1000);
-		authenticateConnection(connection);
-
-		return connection;
-	}
-
 	private void authenticateConnection(URLConnection connection) {
 		String encoded =
 				Base64.getEncoder().encodeToString((config.getUsername() + ":" + config.getPassword()).getBytes(StandardCharsets.UTF_8));
 		connection.setRequestProperty("Authorization", "Basic " + encoded);
 	}
 
-	private void connectConnection(URLConnection connection) throws IOException {
+	private InputStream getStreamForUrl(final String urlString) throws IOException {
 		int retries = 0;
 		int connectionRetryDelay = config.getConnectionRetryDelay();
 
 		while(retries < config.getConnectionRetries()) {
 			try {
+				URL url = new URL(urlString);
+				HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+				connection.setRequestMethod("GET");
+				connection.setReadTimeout(15 * 1000);
+				authenticateConnection(connection);
 				connection.connect();
-				return;
-			}
-			catch(IOException e) {
-				retries++;
-				Logger.info(
-					String.format("Connection attempt %d failed, waiting %dms before retrying...", retries, connectionRetryDelay));
-				HenkinsonUtil.sleep(connectionRetryDelay);
-			}
-		}
 
-		Logger.error("Exceeded maximum number of connection retries, failing.");
-		throw new IOException("Connection retries exceeded.");
-	}
-
-	private InputStream getConnectionStream(URLConnection connection) throws IOException {
-		int retries = 0;
-		int connectionRetryDelay = config.getConnectionRetryDelay();
-
-		while(retries < config.getConnectionRetries()) {
-			try {
 				return connection.getInputStream();
 			}
 			catch(IOException e) {
@@ -159,7 +142,7 @@ public class RemoteJenkins implements Jenkins {
 			}
 		}
 
-		Logger.error("Exceeded maximum number of connection stream retrieval retries, failing.");
-		throw new IOException("Connection stream retrieval retries exceeded.");
+		Logger.error("Exceeded maximum number of connection retries, failing.");
+		throw new IOException("Connection retries exceeded.");
 	}
 }
