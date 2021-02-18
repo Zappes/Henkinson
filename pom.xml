@@ -10,7 +10,7 @@
 
 	<properties>
 		<diozero.version>0.11</diozero.version>
-		<jackson.version>2.10.3</jackson.version>
+		<jackson.version>2.12.1</jackson.version>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
